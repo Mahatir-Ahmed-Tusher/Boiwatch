@@ -16,7 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.tusher.boiwatch.fragment.HomeFragment;
 import com.tusher.boiwatch.fragment.LibraryFragment;
-import com.tusher.boiwatch.fragment.ProfileFragment;
+import com.tusher.boiwatch.fragment.ReelsFragment;
 import com.tusher.boiwatch.fragment.SearchFragment;
 import com.tusher.boiwatch.models.Genre;
 import java.util.ArrayList;
@@ -35,59 +35,71 @@ public class MainActivity extends AppCompatActivity {
 
         drawerLayout = findViewById(R.id.drawer_layout);
         rvGenres = findViewById(R.id.rv_genres);
-        bottomNavigationView = findViewById(R.id.bottom_navigation);
-        
-        setupGenreDrawer();
+        bottomNavigationView = findViewById(R.id.bottom_navigation); // Fixed: Added assignment
+
+        setupDrawer();
 
         if (savedInstanceState == null) {
             loadFragment(new HomeFragment());
         }
 
-        bottomNavigationView.setOnItemSelectedListener(item -> {
-            Fragment fragment = null;
-            int itemId = item.getItemId();
-            if (itemId == R.id.nav_home) {
-                fragment = new HomeFragment();
-            } else if (itemId == R.id.nav_search) {
-                fragment = new SearchFragment();
-            } else if (itemId == R.id.nav_library) {
-                fragment = new LibraryFragment();
-            } else if (itemId == R.id.nav_profile) {
-                fragment = new ProfileFragment();
-            }
-            return loadFragment(fragment);
-        });
+        if (bottomNavigationView != null) {
+            bottomNavigationView.setOnItemSelectedListener(item -> {
+                Fragment fragment = null;
+                int itemId = item.getItemId();
+                if (itemId == R.id.nav_home) {
+                    fragment = new HomeFragment();
+                } else if (itemId == R.id.nav_search) {
+                    fragment = new SearchFragment();
+                } else if (itemId == R.id.nav_reels) {
+                    fragment = new ReelsFragment();
+                } else if (itemId == R.id.nav_library) {
+                    fragment = new LibraryFragment();
+                }
+                
+                if (fragment != null) {
+                    loadFragment(fragment);
+                    return true;
+                }
+                return false;
+            });
+        }
     }
 
-    private void setupGenreDrawer() {
-        List<Genre> genres = new ArrayList<>();
-        // Movie Genres
-        genres.add(new Genre(28, "Action", R.drawable.ic_play));
-        genres.add(new Genre(12, "Adventure", R.drawable.ic_play));
-        genres.add(new Genre(16, "Animation", R.drawable.ic_play));
-        genres.add(new Genre(35, "Comedy", R.drawable.ic_play));
-        genres.add(new Genre(80, "Crime", R.drawable.ic_play));
-        genres.add(new Genre(99, "Documentary", R.drawable.ic_play));
-        genres.add(new Genre(18, "Drama", R.drawable.ic_play));
-        genres.add(new Genre(10751, "Family", R.drawable.ic_play));
-        genres.add(new Genre(14, "Fantasy", R.drawable.ic_play));
-        genres.add(new Genre(36, "History", R.drawable.ic_play));
-        genres.add(new Genre(27, "Horror", R.drawable.ic_play));
-        genres.add(new Genre(10402, "Music", R.drawable.ic_play));
-        genres.add(new Genre(9648, "Mystery", R.drawable.ic_play));
-        genres.add(new Genre(10749, "Romance", R.drawable.ic_play));
-        genres.add(new Genre(878, "Sci-Fi", R.drawable.ic_play));
-        genres.add(new Genre(10770, "TV Movie", R.drawable.ic_play));
-        genres.add(new Genre(53, "Thriller", R.drawable.ic_play));
-        genres.add(new Genre(10752, "War", R.drawable.ic_play));
-        genres.add(new Genre(37, "Western", R.drawable.ic_play));
+    private void setupDrawer() {
+        List<Genre> items = new ArrayList<>();
+        items.add(new Genre(-100, "Reels", R.drawable.ic_play));
+        
+        items.add(new Genre(28, "Action", R.drawable.ic_play));
+        items.add(new Genre(12, "Adventure", R.drawable.ic_play));
+        items.add(new Genre(16, "Animation", R.drawable.ic_play));
+        items.add(new Genre(35, "Comedy", R.drawable.ic_play));
+        items.add(new Genre(80, "Crime", R.drawable.ic_play));
+        items.add(new Genre(99, "Documentary", R.drawable.ic_play));
+        items.add(new Genre(18, "Drama", R.drawable.ic_play));
+        items.add(new Genre(10751, "Family", R.drawable.ic_play));
+        items.add(new Genre(14, "Fantasy", R.drawable.ic_play));
+        items.add(new Genre(36, "History", R.drawable.ic_play));
+        items.add(new Genre(27, "Horror", R.drawable.ic_play));
+        items.add(new Genre(10402, "Music", R.drawable.ic_play));
+        items.add(new Genre(9648, "Mystery", R.drawable.ic_play));
+        items.add(new Genre(10749, "Romance", R.drawable.ic_play));
+        items.add(new Genre(878, "Sci-Fi", R.drawable.ic_play));
+        items.add(new Genre(10770, "TV Movie", R.drawable.ic_play));
+        items.add(new Genre(53, "Thriller", R.drawable.ic_play));
+        items.add(new Genre(10752, "War", R.drawable.ic_play));
+        items.add(new Genre(37, "Western", R.drawable.ic_play));
 
-        rvGenres.setLayoutManager(new LinearLayoutManager(this));
-        rvGenres.setAdapter(new GenreAdapter(genres));
+        if (rvGenres != null) {
+            rvGenres.setLayoutManager(new LinearLayoutManager(this));
+            rvGenres.setAdapter(new GenreAdapter(items));
+        }
     }
 
     public void openDrawer() {
-        drawerLayout.openDrawer(GravityCompat.END);
+        if (drawerLayout != null) {
+            drawerLayout.openDrawer(GravityCompat.END);
+        }
     }
 
     public boolean loadFragment(Fragment fragment) {
@@ -101,9 +113,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class GenreAdapter extends RecyclerView.Adapter<GenreAdapter.ViewHolder> {
-        private List<Genre> genres;
+        private List<Genre> items;
 
-        GenreAdapter(List<Genre> genres) { this.genres = genres; }
+        GenreAdapter(List<Genre> items) { this.items = items; }
 
         @NonNull
         @Override
@@ -114,16 +126,31 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Genre genre = genres.get(position);
-            holder.tvName.setText(genre.getName());
+            Genre item = items.get(position);
+            holder.tvName.setText(item.getName());
+            
+            if (item.getId() == -100) {
+                holder.tvName.setTextColor(getResources().getColor(R.color.accent));
+                holder.tvName.setTypeface(null, android.graphics.Typeface.BOLD);
+            } else {
+                holder.tvName.setTextColor(getResources().getColor(R.color.white));
+                holder.tvName.setTypeface(null, android.graphics.Typeface.NORMAL);
+            }
+
             holder.itemView.setOnClickListener(v -> {
-                drawerLayout.closeDrawer(GravityCompat.END);
-                loadFragment(HomeFragment.newInstance(genre.getId(), genre.getName()));
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.END);
+                if (item.getId() == -100) {
+                    if (bottomNavigationView != null) bottomNavigationView.setSelectedItemId(R.id.nav_reels);
+                    loadFragment(new ReelsFragment());
+                } else {
+                    if (bottomNavigationView != null) bottomNavigationView.setSelectedItemId(R.id.nav_home);
+                    loadFragment(HomeFragment.newInstance(item.getId(), item.getName()));
+                }
             });
         }
 
         @Override
-        public int getItemCount() { return genres.size(); }
+        public int getItemCount() { return items.size(); }
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvName;

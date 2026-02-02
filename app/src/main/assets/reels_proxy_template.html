@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%%;
+            height: 100%%;
+            background-color: black;
+            overflow: hidden;
+        }
+
+        #player {
+            width: 100%%;
+            height: 100%%;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="player"></div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        var player;
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                videoId: '%s',
+                playerVars: {
+                    'autoplay': 1,
+                    'mute': 0,
+                    'rel': 0,
+                    'modestbranding': 1,
+                    'controls': 0,
+                    'showinfo': 0,
+                    'loop': 0, // Disable loop to detect ENDED state
+                    'enablejsapi': 1,
+                    'origin': 'https://boiwatch.app'
+                },
+                events: {
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.ENDED) {
+                if (window.Android && window.Android.onVideoEnd) {
+                    window.Android.onVideoEnd();
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
