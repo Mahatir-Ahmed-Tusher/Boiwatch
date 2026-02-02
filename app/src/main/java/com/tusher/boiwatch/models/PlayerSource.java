@@ -1,26 +1,34 @@
 package com.tusher.boiwatch.models;
 
 public class PlayerSource {
-    private String name;
-    private String url;
-    private boolean isPremium;
-    private boolean isFast;
-    private boolean hasAds;
-    private boolean supportsSubtitles;
+    private String title;
+    private String sourceUrl;
+    private boolean recommended;
+    private boolean fast;
+    private boolean ads;
+    private String note;
 
-    public PlayerSource(String name, String url, boolean isPremium, boolean isFast, boolean hasAds, boolean supportsSubtitles) {
-        this.name = name;
-        this.url = url;
-        this.isPremium = isPremium;
-        this.isFast = isFast;
-        this.hasAds = hasAds;
-        this.supportsSubtitles = supportsSubtitles;
+    public PlayerSource(String title, String sourceUrl, boolean recommended, boolean fast, boolean ads, String note) {
+        this.title = title;
+        this.sourceUrl = sourceUrl;
+        this.recommended = recommended;
+        this.fast = fast;
+        this.ads = ads;
+        this.note = note;
     }
 
-    public String getName() { return name; }
-    public String getUrl() { return url; }
-    public boolean isPremium() { return isPremium; }
-    public boolean isFast() { return isFast; }
-    public boolean hasAds() { return hasAds; }
-    public boolean isSupportsSubtitles() { return supportsSubtitles; }
+    public String getTitle() { return title; }
+    
+    // Alias for getTitle() used in PlayerActivity
+    public String getName() { return title; }
+
+    public String getSourceUrl() { return sourceUrl; }
+    
+    // Alias for getSourceUrl() used in PlayerActivity
+    public String getUrl() { return sourceUrl; }
+
+    public boolean isRecommended() { return recommended; }
+    public boolean isFast() { return fast; }
+    public boolean isAds() { return ads; }
+    public String getNote() { return note; }
 }

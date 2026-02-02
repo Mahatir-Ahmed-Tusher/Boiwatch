@@ -2,6 +2,7 @@ package com.tusher.boiwatch.adapter;
 
 import android.content.Context;
 import android.content.Intent;
+import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -51,7 +52,18 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             ((UserViewHolder) holder).tvMessage.setText(message.getText());
         } else {
             AIViewHolder aiHolder = (AIViewHolder) holder;
-            aiHolder.tvMessage.setText(message.getText());
+            
+            // Clean markdown and convert to HTML for proper rendering
+            String cleanText = message.getText()
+                    .replaceAll("\\*\\*(.*?)\\*\\*", "<b>$1</b>") // Bold
+                    .replaceAll("\\*(.*?)\\*", "<i>$1</i>");      // Italic
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                aiHolder.tvMessage.setText(Html.fromHtml(cleanText, Html.FROM_HTML_MODE_LEGACY));
+            } else {
+                aiHolder.tvMessage.setText(Html.fromHtml(cleanText));
+            }
+
             if (message.getSuggestions() != null && !message.getSuggestions().isEmpty()) {
                 aiHolder.rvSuggestions.setVisibility(View.VISIBLE);
                 aiHolder.rvSuggestions.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false));
@@ -106,7 +118,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             Movie movie = movies.get(position);
             holder.tvTitle.setText(movie.getTitle());
             holder.tvRating.setText("⭐ " + movie.getVoteAverage());
-            Picasso.get().load("https://image.tmdb.org/t/p/w500" + movie.getPosterPath()).into(holder.ivPoster);
+            
+            Picasso.get().load(movie.getPosterPath()).into(holder.ivPoster);
             
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(context, MovieDetailActivity.class);

@@ -62,7 +62,7 @@ public class DiscoveryChatFragment extends BottomSheetDialogFragment {
         btnSend.setOnClickListener(v -> sendMessage());
         
         if (messages.isEmpty()) {
-            String welcome = "Namaste! I'm Cinemawala, your personal movie guru. 🎬\n\nI can suggest movies based on your mood, write reviews, share mind-blowing trivia, or just chat about cinema! What's on your mind today?";
+            String welcome = "Hey... ki obostha? I'm Cinemawala, your personal movie guru. 🎬\n\nI can suggest movies based on your mood, write reviews, share mind-blowing trivia, or just chat about cinema! What's on your mind today?";
             messages.add(new ChatMessage(welcome, ChatMessage.TYPE_AI));
             adapter.notifyDataSetChanged();
             chatHistory.add(new ChatRequest.Message("assistant", welcome));
@@ -86,14 +86,15 @@ public class DiscoveryChatFragment extends BottomSheetDialogFragment {
     private void fetchAIResponse() {
         List<ChatRequest.Message> fullMessages = new ArrayList<>();
         
-        String systemPrompt = "You are 'Cinemawala', a talkative, curious, and sincere movie expert for the BoiWatch app. " +
-                "Your goal is to be engaging and helpful. Use a friendly, slightly informal tone. " +
-                "You can write detailed movie reviews, share interesting trivia, and provide personalized suggestions. " +
-                "When suggesting movies or TV shows, you MUST provide their valid TMDB IDs in brackets at the end of your message, like [ID1, ID2, ID3]. " +
-                "Only suggest real, existing titles. If you are unsure about an ID, don't include it. " +
-                "Always recommend titles that the user can find in our app (which uses TMDB data). " +
-                "Be curious: ask the user about their favorite genres or recent watches. " +
-                "Always stay in character as Cinemawala.";
+        String systemPrompt = "You are 'Cinemawala', an expert movie guide for the BoiWatch app. " +
+                "You are talkative, responsive, curious, and sincere. You have a friendly, local vibe. " +
+                "Welcome message MUST start with 'Hey... ki obostha?'. " +
+                "Language Policy: Always respond in English unless the user speaks in Bengali. " +
+                "Recommendation Content: Prioritize recommending English (mostly), Hindi, Korean (K-Dramas), and Japanese Anime. " +
+                "Recommendation Rule: When suggesting titles, DO NOT write the movie or show names in your text. " +
+                "Simply explain why you chose them and provide their valid TMDB IDs in brackets like [ID1, ID2]. " +
+                "Example: 'I think you will love these because of their plot twists: [27205, 299536]'. " +
+                "Always suggest real titles. Stay in character.";
         
         fullMessages.add(new ChatRequest.Message("system", systemPrompt));
         fullMessages.addAll(chatHistory);
@@ -208,15 +209,17 @@ public class DiscoveryChatFragment extends BottomSheetDialogFragment {
 
     private void processFinalContent(int position, String content) {
         List<String> ids = new ArrayList<>();
-        Pattern pattern = Pattern.compile("\\[(.*?)\\]");
+        // Better extraction: find all digit sequences inside any brackets
+        Pattern pattern = Pattern.compile("\\[([^\\]]+)\\]");
         Matcher matcher = pattern.matcher(content);
         
-        if (matcher.find()) {
-            String idString = matcher.group(1);
-            String[] parts = idString.split(",");
-            for (String part : parts) {
-                String id = part.trim();
-                if (!id.isEmpty() && id.matches("\\d+")) {
+        while (matcher.find()) {
+            String match = matcher.group(1);
+            Pattern idPattern = Pattern.compile("\\d+");
+            Matcher idMatcher = idPattern.matcher(match);
+            while (idMatcher.find()) {
+                String id = idMatcher.group();
+                if (!ids.contains(id)) {
                     ids.add(id);
                 }
             }
@@ -234,6 +237,7 @@ public class DiscoveryChatFragment extends BottomSheetDialogFragment {
         
         for (String idStr : ids) {
             int id = Integer.parseInt(idStr);
+            // Step 1: Try as Movie
             RetrofitClient.getApi().getMovieDetails("Bearer " + Constants.TMDB_ACCESS_TOKEN, id)
                     .enqueue(new Callback<Movie>() {
                         @Override
@@ -244,6 +248,7 @@ public class DiscoveryChatFragment extends BottomSheetDialogFragment {
                                 synchronized (suggestions) { suggestions.add(m); }
                                 checkCompletion();
                             } else {
+                                // Step 2: Fallback to TV if not a movie
                                 fetchTVAsFallback(id, suggestions, () -> checkCompletion());
                             }
                         }

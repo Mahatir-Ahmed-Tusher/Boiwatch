@@ -104,16 +104,17 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Discovery Button -->
+    <!-- Discovery Button (Cinemawala) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_discovery"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
-        android:src="@drawable/ic_play"
-        app:backgroundTint="@color/accent"
-        app:tint="@color/white" />
+        android:src="@drawable/cinemawala"
+        app:maxImageSize="40dp"
+        app:backgroundTint="@color/card_background"
+        app:tint="@null" />
 
     <!-- Remove Zone -->
     <LinearLayout

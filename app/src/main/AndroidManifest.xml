@@ -37,6 +37,11 @@
             android:theme="@style/Theme.BoiWatch" />
             
         <activity
+            android:name=".activity.AboutActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BoiWatch" />
+            
+        <activity
             android:name=".activity.PlayerActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="false"

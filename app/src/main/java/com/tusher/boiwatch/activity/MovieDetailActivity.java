@@ -174,9 +174,28 @@ public class MovieDetailActivity extends AppCompatActivity {
         seasons = details.getSeasons();
         llEpisodesSection.setVisibility(View.VISIBLE);
         if (seasons != null && !seasons.isEmpty()) {
-            currentSeasonNumber = seasons.get(0).getSeasonNumber();
+            // Find Season 1 or the first non-zero season to start with
+            Season initialSeason = seasons.get(0);
+            for (Season s : seasons) {
+                if (s.getSeasonNumber() == 1) {
+                    initialSeason = s;
+                    break;
+                }
+            }
+            
+            // If Season 1 wasn't found but there are other seasons (excluding specials)
+            if (initialSeason.getSeasonNumber() == 0 && seasons.size() > 1) {
+                for (Season s : seasons) {
+                    if (s.getSeasonNumber() > 0) {
+                        initialSeason = s;
+                        break;
+                    }
+                }
+            }
+
+            currentSeasonNumber = initialSeason.getSeasonNumber();
             fetchEpisodes(currentSeasonNumber);
-            btnSeasonPicker.setText(seasons.get(0).getName());
+            btnSeasonPicker.setText(initialSeason.getName());
         }
     }
 

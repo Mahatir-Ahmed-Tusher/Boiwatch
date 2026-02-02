@@ -30,6 +30,15 @@ public class Movie implements Serializable {
     @SerializedName("belongs_to_collection")
     private BelongsToCollection belongsToCollection;
 
+    @SerializedName("original_language")
+    private String originalLanguage;
+
+    @SerializedName("production_countries")
+    private List<ProductionCountry> productionCountries;
+
+    @SerializedName("origin_country")
+    private List<String> originCountry;
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     
@@ -60,4 +69,25 @@ public class Movie implements Serializable {
     public void setMediaType(String mediaType) { this.mediaType = mediaType; }
     
     public BelongsToCollection getBelongsToCollection() { return belongsToCollection; }
+
+    public String getOriginalLanguage() { return originalLanguage; }
+    public void setOriginalLanguage(String originalLanguage) { this.originalLanguage = originalLanguage; }
+
+    public List<ProductionCountry> getProductionCountries() { return productionCountries; }
+    public void setProductionCountries(List<ProductionCountry> productionCountries) { this.productionCountries = productionCountries; }
+
+    public List<String> getOriginCountry() { return originCountry; }
+    public void setOriginCountry(List<String> originCountry) { this.originCountry = originCountry; }
+
+    public static class ProductionCountry implements Serializable {
+        @SerializedName("iso_3166_1")
+        private String iso31661;
+        @SerializedName("name")
+        private String name;
+
+        public String getIso31661() { return iso31661; }
+        public void setIso31661(String iso31661) { this.iso31661 = iso31661; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+    }
 }

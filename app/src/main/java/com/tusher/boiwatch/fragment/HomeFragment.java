@@ -2,6 +2,7 @@ package com.tusher.boiwatch.fragment;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.materialswitch.MaterialSwitch;
@@ -28,7 +30,9 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tusher.boiwatch.Constants;
+import com.tusher.boiwatch.MainActivity;
 import com.tusher.boiwatch.R;
+import com.tusher.boiwatch.activity.AboutActivity;
 import com.tusher.boiwatch.adapter.HeroAdapter;
 import com.tusher.boiwatch.adapter.MovieAdapter;
 import com.tusher.boiwatch.api.RetrofitClient;
@@ -57,9 +61,30 @@ public class HomeFragment extends Fragment {
     private Gson gson = new Gson();
     private String token;
 
+    private int selectedGenreId = -1;
+    private String selectedGenreName = null;
+
     private float dX, dY;
     private static final int CLICK_ACTION_THRESHOLD = 200;
     private long lastTouchDownTime;
+
+    public static HomeFragment newInstance(int genreId, String genreName) {
+        HomeFragment fragment = new HomeFragment();
+        Bundle args = new Bundle();
+        args.putInt("genre_id", genreId);
+        args.putString("genre_name", genreName);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            selectedGenreId = getArguments().getInt("genre_id", -1);
+            selectedGenreName = getArguments().getString("genre_name");
+        }
+    }
 
     @Nullable
     @Override
@@ -81,10 +106,41 @@ public class HomeFragment extends Fragment {
         setupDiscoveryButton();
         setupMenu();
         loadContinueWatching();
-        fetchTrendingAll(); 
-        fetchDynamicSections();
+        
+        if (selectedGenreId != -1) {
+            setupGenreMode();
+        } else {
+            fetchTrendingAll(); 
+            fetchDynamicSections();
+        }
 
         return view;
+    }
+
+    private void setupGenreMode() {
+        // Hide Hero and Continue Watching in Genre Mode
+        heroViewPager.setVisibility(View.GONE);
+        heroIndicator.setVisibility(View.GONE);
+        tvContinueWatching.setVisibility(View.GONE);
+        rvContinueWatching.setVisibility(View.GONE);
+
+        // Add a "Exit Genre Mode" header
+        View headerView = LayoutInflater.from(getContext()).inflate(R.layout.item_genre_header, llDynamicSections, false);
+        TextView tvTitle = headerView.findViewById(R.id.tv_genre_title);
+        ImageView ivClose = headerView.findViewById(R.id.iv_close_genre);
+        
+        tvTitle.setText("Category: " + selectedGenreName);
+        ivClose.setOnClickListener(v -> {
+            if (getActivity() != null) {
+                ((MainActivity) getActivity()).loadFragment(new HomeFragment());
+            }
+        });
+        llDynamicSections.addView(headerView);
+
+        // Fetch contents for this genre
+        addCategorySection("Popular in " + selectedGenreName, RetrofitClient.getApi().discoverMovie(token, Map.of("with_genres", String.valueOf(selectedGenreId), "sort_by", "popularity.desc")), "movie");
+        addCategorySection("Top Rated " + selectedGenreName, RetrofitClient.getApi().discoverMovie(token, Map.of("with_genres", String.valueOf(selectedGenreId), "sort_by", "vote_average.desc")), "movie");
+        addCategorySection("Recent " + selectedGenreName, RetrofitClient.getApi().discoverMovie(token, Map.of("with_genres", String.valueOf(selectedGenreId), "sort_by", "primary_release_date.desc")), "movie");
     }
 
     private void setupMenu() {
@@ -94,6 +150,14 @@ public class HomeFragment extends Fragment {
             popup.setOnMenuItemClickListener(item -> {
                 if (item.getItemId() == R.id.menu_settings) {
                     showSettingsDialog();
+                    return true;
+                } else if (item.getItemId() == R.id.menu_about) {
+                    startActivity(new Intent(getContext(), AboutActivity.class));
+                    return true;
+                } else if (item.getItemId() == R.id.menu_genres) {
+                    if (getActivity() instanceof MainActivity) {
+                        ((MainActivity) getActivity()).openDrawer();
+                    }
                     return true;
                 }
                 return false;
@@ -105,19 +169,51 @@ public class HomeFragment extends Fragment {
     private void showSettingsDialog() {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_settings, null);
         MaterialSwitch switchDiscovery = dialogView.findViewById(R.id.switch_discovery_visibility);
+        MaterialButton btnClearHistory = dialogView.findViewById(R.id.btn_clear_history);
+        MaterialButton btnClearAll = dialogView.findViewById(R.id.btn_clear_all);
         
         boolean isVisible = prefs.getBoolean(Constants.KEY_DISCOVERY_VISIBLE, true);
         switchDiscovery.setChecked(isVisible);
         
-        new MaterialAlertDialogBuilder(getContext(), R.style.GlassmorphicDialog)
+        android.app.Dialog dialog = new MaterialAlertDialogBuilder(getContext(), R.style.GlassmorphicDialog)
                 .setTitle("Settings")
                 .setView(dialogView)
-                .setPositiveButton("Done", (dialog, which) -> {
+                .setPositiveButton("Done", (d, which) -> {
                     boolean newValue = switchDiscovery.isChecked();
                     prefs.edit().putBoolean(Constants.KEY_DISCOVERY_VISIBLE, newValue).apply();
                     fabDiscovery.setVisibility(newValue ? View.VISIBLE : View.GONE);
                 })
-                .show();
+                .create();
+
+        btnClearHistory.setOnClickListener(v -> {
+            new MaterialAlertDialogBuilder(getContext(), R.style.GlassmorphicDialog)
+                    .setTitle("Clear History")
+                    .setMessage("Are you sure you want to clear your 'Continue Watching' list?")
+                    .setPositiveButton("Clear", (d, which) -> {
+                        prefs.edit().remove(Constants.KEY_WATCH_HISTORY).apply();
+                        loadContinueWatching();
+                        Toast.makeText(getContext(), "History cleared", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+
+        btnClearAll.setOnClickListener(v -> {
+            new MaterialAlertDialogBuilder(getContext(), R.style.GlassmorphicDialog)
+                    .setTitle("Reset App")
+                    .setMessage("This will remove all your watch history, watchlist, and custom settings. Proceed?")
+                    .setPositiveButton("Clear All", (d, which) -> {
+                        prefs.edit().clear().apply();
+                        loadContinueWatching();
+                        setupDiscoveryButton();
+                        Toast.makeText(getContext(), "All data cleared", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+
+        dialog.show();
     }
 
     @SuppressLint("ClickableViewAccessibility")

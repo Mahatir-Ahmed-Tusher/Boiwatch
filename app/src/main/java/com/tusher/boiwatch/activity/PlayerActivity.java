@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,6 +27,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.tusher.boiwatch.Constants;
 import com.tusher.boiwatch.R;
@@ -51,6 +53,9 @@ public class PlayerActivity extends AppCompatActivity {
     private int currentSourceIndex = 0;
     private boolean isErrorOccurred = false;
 
+    private Handler timeoutHandler = new Handler();
+    private Runnable timeoutRunnable = this::tryNextSource;
+
     private View mCustomView;
     private WebChromeClient.CustomViewCallback mCustomViewCallback;
     private FrameLayout fullscreenContainer;
@@ -73,6 +78,7 @@ public class PlayerActivity extends AppCompatActivity {
         prefs = getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE);
         
         initViews();
+        loadSources();
     }
 
     private void initViews() {
@@ -90,22 +96,31 @@ public class PlayerActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.player_toolbar);
         toolbar.setNavigationOnClickListener(v -> onBackPressed());
         
+        ivServerSelect.setOnClickListener(v -> {
+            if (availableSources != null) {
+                showServerSelectionDialog(availableSources);
+            }
+        });
+
+        setupWebView();
+        setFullscreen();
+    }
+
+    private void loadSources() {
+        progressBar.setVisibility(View.VISIBLE);
         if (season != -1 && episode != -1) {
             availableSources = PlayerProvider.getTVPlayers(movie.getId(), season, episode);
         } else {
             availableSources = PlayerProvider.getMoviePlayers(movie.getId(), 0);
         }
         
-        ivServerSelect.setOnClickListener(v -> showServerSelectionDialog(availableSources));
-
-        setupWebView();
-        
         if (!availableSources.isEmpty()) {
             currentSourceIndex = 0;
             loadSource(availableSources.get(currentSourceIndex).getUrl());
+        } else {
+            progressBar.setVisibility(View.GONE);
+            Toast.makeText(this, "No sources found", Toast.LENGTH_SHORT).show();
         }
-
-        setFullscreen();
     }
 
     private void setFullscreen() {
@@ -118,6 +133,11 @@ public class PlayerActivity extends AppCompatActivity {
     private void loadSource(String url) {
         this.currentBaseUrl = url;
         this.isErrorOccurred = false;
+        
+        // Start fallback timer (15 seconds)
+        timeoutHandler.removeCallbacks(timeoutRunnable);
+        timeoutHandler.postDelayed(timeoutRunnable, 15000);
+        
         webView.loadUrl(url);
     }
 
@@ -128,10 +148,11 @@ public class PlayerActivity extends AppCompatActivity {
         if (currentSourceIndex < availableSources.size()) {
             String nextUrl = availableSources.get(currentSourceIndex).getUrl();
             String nextName = availableSources.get(currentSourceIndex).getName();
-            Toast.makeText(this, "Server failed. Switching to " + nextName + "...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Link unstable. Switching to " + nextName + "...", Toast.LENGTH_SHORT).show();
             loadSource(nextUrl);
         } else {
-            Toast.makeText(this, "All servers failed to load. Please try again later.", Toast.LENGTH_LONG).show();
+            timeoutHandler.removeCallbacks(timeoutRunnable);
+            Toast.makeText(this, "All servers failed. Try switching servers manually.", Toast.LENGTH_LONG).show();
             progressBar.setVisibility(View.GONE);
         }
     }
@@ -149,6 +170,16 @@ public class PlayerActivity extends AppCompatActivity {
         rvSources.setAdapter(adapter);
         
         dialog.setContentView(view);
+        
+        // Fix: Force the BottomSheet to open fully expanded so servers are immediately visible
+        dialog.setOnShowListener(d -> {
+            BottomSheetDialog bsd = (BottomSheetDialog) d;
+            View bottomSheet = bsd.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (bottomSheet != null) {
+                BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
+        });
+        
         dialog.show();
     }
 
@@ -173,6 +204,7 @@ public class PlayerActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 progressBar.setVisibility(View.GONE);
+                timeoutHandler.removeCallbacks(timeoutRunnable); // Stop the timeout timer
                 injectAntiRedirectJS(view);
             }
 
@@ -306,6 +338,7 @@ public class PlayerActivity extends AppCompatActivity {
         super.onPause();
         webView.onPause();
         webView.pauseTimers();
+        timeoutHandler.removeCallbacks(timeoutRunnable);
     }
 
     @Override
@@ -319,6 +352,7 @@ public class PlayerActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        timeoutHandler.removeCallbacks(timeoutRunnable);
         webView.destroy();
     }
 }
