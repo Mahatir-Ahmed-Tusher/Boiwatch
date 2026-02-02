@@ -5,7 +5,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -14,10 +16,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.widget.NestedScrollView;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.Gson;
@@ -58,6 +63,7 @@ public class MovieDetailActivity extends AppCompatActivity {
     private NestedScrollView scrollView;
     private List<Season> seasons = new ArrayList<>();
     private boolean isTVShow = false;
+    private int currentSeasonNumber = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,7 +129,6 @@ public class MovieDetailActivity extends AppCompatActivity {
     }
 
     private void detectMediaType() {
-        // Step 1: Check media_type if available (from search/discovery)
         if ("tv".equals(movie.getMediaType())) {
             loadAsTVShow();
             return;
@@ -132,7 +137,6 @@ public class MovieDetailActivity extends AppCompatActivity {
             return;
         }
 
-        // Step 2: Verification via API
         RetrofitClient.getApi().getTVDetails("Bearer " + Constants.TMDB_ACCESS_TOKEN, Integer.parseInt(movie.getId()))
                 .enqueue(new Callback<TVDetailResponse>() {
                     @Override
@@ -170,7 +174,8 @@ public class MovieDetailActivity extends AppCompatActivity {
         seasons = details.getSeasons();
         llEpisodesSection.setVisibility(View.VISIBLE);
         if (seasons != null && !seasons.isEmpty()) {
-            fetchEpisodes(seasons.get(0).getSeasonNumber());
+            currentSeasonNumber = seasons.get(0).getSeasonNumber();
+            fetchEpisodes(currentSeasonNumber);
             btnSeasonPicker.setText(seasons.get(0).getName());
         }
     }
@@ -216,16 +221,22 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     private void showSeasonPickerDialog() {
         if (seasons == null || seasons.isEmpty()) return;
-        String[] seasonNames = new String[seasons.size()];
-        for (int i = 0; i < seasons.size(); i++) seasonNames[i] = seasons.get(i).getName();
 
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Select Season")
-                .setItems(seasonNames, (dialog, which) -> {
-                    btnSeasonPicker.setText(seasons.get(which).getName());
-                    fetchEpisodes(seasons.get(which).getSeasonNumber());
-                })
-                .show();
+        BottomSheetDialog dialog = new BottomSheetDialog(this, R.style.GlassmorphicDialog);
+        View view = getLayoutInflater().inflate(R.layout.dialog_season_picker, null);
+        RecyclerView rvSeasons = view.findViewById(R.id.rv_season_list);
+        
+        rvSeasons.setLayoutManager(new LinearLayoutManager(this));
+        SeasonAdapter adapter = new SeasonAdapter(this, seasons, currentSeasonNumber, season -> {
+            currentSeasonNumber = season.getSeasonNumber();
+            btnSeasonPicker.setText(season.getName());
+            fetchEpisodes(currentSeasonNumber);
+            dialog.dismiss();
+        });
+        rvSeasons.setAdapter(adapter);
+        
+        dialog.setContentView(view);
+        dialog.show();
     }
     
     private void fetchCredits() {
@@ -340,5 +351,62 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     private void saveList(String key, List<Movie> list) {
         prefs.edit().putString(key, gson.toJson(list)).apply();
+    }
+
+    private static class SeasonAdapter extends RecyclerView.Adapter<SeasonAdapter.ViewHolder> {
+        private final Context context;
+        private final List<Season> seasons;
+        private final int currentSeason;
+        private final OnSeasonSelectedListener listener;
+
+        public interface OnSeasonSelectedListener {
+            void onSeasonSelected(Season season);
+        }
+
+        public SeasonAdapter(Context context, List<Season> seasons, int currentSeason, OnSeasonSelectedListener listener) {
+            this.context = context;
+            this.seasons = seasons;
+            this.currentSeason = currentSeason;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(context).inflate(R.layout.item_season, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            Season season = seasons.get(position);
+            holder.tvName.setText(season.getName());
+            holder.tvEpisodes.setText(season.getEpisodeCount() + " Episodes");
+            Picasso.get().load(season.getPosterPath()).into(holder.ivPoster);
+
+            boolean isSelected = season.getSeasonNumber() == currentSeason;
+            holder.ivIndicator.setVisibility(isSelected ? View.VISIBLE : View.GONE);
+            holder.itemView.setAlpha(isSelected ? 1.0f : 0.7f);
+
+            holder.itemView.setOnClickListener(v -> listener.onSeasonSelected(season));
+        }
+
+        @Override
+        public int getItemCount() {
+            return seasons.size();
+        }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            ImageView ivPoster, ivIndicator;
+            TextView tvName, tvEpisodes;
+
+            public ViewHolder(@NonNull View itemView) {
+                super(itemView);
+                ivPoster = itemView.findViewById(R.id.iv_season_poster);
+                ivIndicator = itemView.findViewById(R.id.iv_selected_indicator);
+                tvName = itemView.findViewById(R.id.tv_season_name);
+                tvEpisodes = itemView.findViewById(R.id.tv_season_episodes);
+            }
+        }
     }
 }

@@ -62,7 +62,7 @@ public class DiscoveryChatFragment extends BottomSheetDialogFragment {
         btnSend.setOnClickListener(v -> sendMessage());
         
         if (messages.isEmpty()) {
-            String welcome = "Hey! Ki obostha? ami Cinemawala, your personal movie guru. 🎬\n\nI can suggest movies based on your mood, write reviews, share mind-blowing trivia, or just chat about cinema! What's on your mind today?";
+            String welcome = "Namaste! I'm Cinemawala, your personal movie guru. 🎬\n\nI can suggest movies based on your mood, write reviews, share mind-blowing trivia, or just chat about cinema! What's on your mind today?";
             messages.add(new ChatMessage(welcome, ChatMessage.TYPE_AI));
             adapter.notifyDataSetChanged();
             chatHistory.add(new ChatRequest.Message("assistant", welcome));
@@ -86,13 +86,14 @@ public class DiscoveryChatFragment extends BottomSheetDialogFragment {
     private void fetchAIResponse() {
         List<ChatRequest.Message> fullMessages = new ArrayList<>();
         
-        String systemPrompt = "You are 'Cinema Wala', a talkative, curious, and sincere movie expert for the BoiWatch app. " +
+        String systemPrompt = "You are 'Cinemawala', a talkative, curious, and sincere movie expert for the BoiWatch app. " +
                 "Your goal is to be engaging and helpful. Use a friendly, slightly informal tone. " +
                 "You can write detailed movie reviews, share interesting trivia, and provide personalized suggestions. " +
                 "When suggesting movies or TV shows, you MUST provide their valid TMDB IDs in brackets at the end of your message, like [ID1, ID2, ID3]. " +
                 "Only suggest real, existing titles. If you are unsure about an ID, don't include it. " +
+                "Always recommend titles that the user can find in our app (which uses TMDB data). " +
                 "Be curious: ask the user about their favorite genres or recent watches. " +
-                "Always stay in character as Cinema Wala.";
+                "Always stay in character as Cinemawala.";
         
         fullMessages.add(new ChatRequest.Message("system", systemPrompt));
         fullMessages.addAll(chatHistory);
