@@ -1,0 +1,344 @@
+package com.tusher.boiwatch.activity;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.view.View;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.widget.NestedScrollView;
+import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.squareup.picasso.Picasso;
+import com.tusher.boiwatch.Constants;
+import com.tusher.boiwatch.R;
+import com.tusher.boiwatch.adapter.CastAdapter;
+import com.tusher.boiwatch.adapter.EpisodeAdapter;
+import com.tusher.boiwatch.adapter.PhotoAdapter;
+import com.tusher.boiwatch.api.RetrofitClient;
+import com.tusher.boiwatch.models.CreditsResponse;
+import com.tusher.boiwatch.models.Crew;
+import com.tusher.boiwatch.models.Episode;
+import com.tusher.boiwatch.models.EpisodeResponse;
+import com.tusher.boiwatch.models.ImageResponse;
+import com.tusher.boiwatch.models.Movie;
+import com.tusher.boiwatch.models.Season;
+import com.tusher.boiwatch.models.TVDetailResponse;
+import com.tusher.boiwatch.models.Video;
+import com.tusher.boiwatch.models.VideosResponse;
+import java.util.ArrayList;
+import java.util.List;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class MovieDetailActivity extends AppCompatActivity {
+
+    private Movie movie;
+    private SharedPreferences prefs;
+    private Gson gson = new Gson();
+    private RecyclerView rvCast, rvEpisodes, rvPhotos;
+    private MaterialButton btnTrailer, btnSeasonPicker, btnPlay;
+    private TextView tvCrewList, tvYear;
+    private RelativeLayout rlDirectorSection;
+    private LinearLayout llEpisodesSection;
+    private NestedScrollView scrollView;
+    private List<Season> seasons = new ArrayList<>();
+    private boolean isTVShow = false;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_movie_detail);
+
+        movie = (Movie) getIntent().getSerializableExtra("movie");
+        if (movie == null) {
+            finish();
+            return;
+        }
+
+        prefs = getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE);
+
+        initViews();
+        fetchCredits();
+        fetchVideos();
+        fetchPhotos();
+        detectMediaType();
+        saveToHistory();
+    }
+
+    private void initViews() {
+        ImageView ivBackdrop = findViewById(R.id.iv_detail_backdrop);
+        TextView tvTitle = findViewById(R.id.tv_detail_title);
+        TextView tvRating = findViewById(R.id.tv_detail_rating);
+        TextView tvOverview = findViewById(R.id.tv_detail_overview);
+        tvYear = findViewById(R.id.tv_detail_year);
+        btnPlay = findViewById(R.id.fab_play);
+        
+        rvCast = findViewById(R.id.rv_cast);
+        rvEpisodes = findViewById(R.id.rv_episodes);
+        rvPhotos = findViewById(R.id.rv_photos);
+        btnTrailer = findViewById(R.id.btn_play_trailer);
+        btnSeasonPicker = findViewById(R.id.btn_season_picker);
+        tvCrewList = findViewById(R.id.tv_crew_list);
+        rlDirectorSection = findViewById(R.id.rl_director_section);
+        llEpisodesSection = findViewById(R.id.ll_episodes_section);
+        scrollView = findViewById(R.id.detail_scroll_view);
+
+        tvTitle.setText(movie.getTitle());
+        tvRating.setText("⭐ " + String.format("%.1f", movie.getVoteAverage()));
+        tvOverview.setText(movie.getOverview());
+        
+        if (movie.getReleaseDate() != null && movie.getReleaseDate().length() >= 4) {
+            tvYear.setText(movie.getReleaseDate().substring(0, 4));
+        }
+
+        Picasso.get().load(movie.getBackdropPath()).into(ivBackdrop);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+
+        btnPlay.setOnClickListener(v -> {
+            if (isTVShow) {
+                scrollView.smoothScrollTo(0, llEpisodesSection.getTop());
+            } else {
+                showAdsWarning(null);
+            }
+        });
+
+        btnTrailer.setEnabled(false); 
+        btnSeasonPicker.setOnClickListener(v -> showSeasonPickerDialog());
+    }
+
+    private void detectMediaType() {
+        // Step 1: Check media_type if available (from search/discovery)
+        if ("tv".equals(movie.getMediaType())) {
+            loadAsTVShow();
+            return;
+        } else if ("movie".equals(movie.getMediaType())) {
+            loadAsMovie();
+            return;
+        }
+
+        // Step 2: Verification via API
+        RetrofitClient.getApi().getTVDetails("Bearer " + Constants.TMDB_ACCESS_TOKEN, Integer.parseInt(movie.getId()))
+                .enqueue(new Callback<TVDetailResponse>() {
+                    @Override
+                    public void onResponse(Call<TVDetailResponse> call, Response<TVDetailResponse> response) {
+                        if (response.isSuccessful() && response.body() != null && response.body().getSeasons() != null) {
+                            setupTVShowUI(response.body());
+                        } else {
+                            loadAsMovie();
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<TVDetailResponse> call, Throwable t) {
+                        loadAsMovie();
+                    }
+                });
+    }
+
+    private void loadAsTVShow() {
+        RetrofitClient.getApi().getTVDetails("Bearer " + Constants.TMDB_ACCESS_TOKEN, Integer.parseInt(movie.getId()))
+                .enqueue(new Callback<TVDetailResponse>() {
+                    @Override
+                    public void onResponse(Call<TVDetailResponse> call, Response<TVDetailResponse> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            setupTVShowUI(response.body());
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<TVDetailResponse> call, Throwable t) {}
+                });
+    }
+
+    private void setupTVShowUI(TVDetailResponse details) {
+        isTVShow = true;
+        btnPlay.setText("View Episodes");
+        seasons = details.getSeasons();
+        llEpisodesSection.setVisibility(View.VISIBLE);
+        if (seasons != null && !seasons.isEmpty()) {
+            fetchEpisodes(seasons.get(0).getSeasonNumber());
+            btnSeasonPicker.setText(seasons.get(0).getName());
+        }
+    }
+
+    private void loadAsMovie() {
+        isTVShow = false;
+        btnPlay.setText("Watch Now");
+        llEpisodesSection.setVisibility(View.GONE);
+    }
+
+    private void fetchEpisodes(int seasonNumber) {
+        RetrofitClient.getApi().getSeasonEpisodes("Bearer " + Constants.TMDB_ACCESS_TOKEN, Integer.parseInt(movie.getId()), seasonNumber)
+                .enqueue(new Callback<EpisodeResponse>() {
+                    @Override
+                    public void onResponse(Call<EpisodeResponse> call, Response<EpisodeResponse> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            rvEpisodes.setAdapter(new EpisodeAdapter(MovieDetailActivity.this, response.body().getEpisodes(), episode -> {
+                                showAdsWarning(episode);
+                            }));
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<EpisodeResponse> call, Throwable t) {}
+                });
+    }
+
+    private void fetchPhotos() {
+        String token = "Bearer " + Constants.TMDB_ACCESS_TOKEN;
+        int id = Integer.parseInt(movie.getId());
+        Call<ImageResponse> call = isTVShow ? RetrofitClient.getApi().getTVImages(token, id) : RetrofitClient.getApi().getMovieImages(token, id);
+        
+        call.enqueue(new Callback<ImageResponse>() {
+            @Override
+            public void onResponse(Call<ImageResponse> call, Response<ImageResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    rvPhotos.setAdapter(new PhotoAdapter(MovieDetailActivity.this, response.body().getBackdrops()));
+                }
+            }
+            @Override
+            public void onFailure(Call<ImageResponse> call, Throwable t) {}
+        });
+    }
+
+    private void showSeasonPickerDialog() {
+        if (seasons == null || seasons.isEmpty()) return;
+        String[] seasonNames = new String[seasons.size()];
+        for (int i = 0; i < seasons.size(); i++) seasonNames[i] = seasons.get(i).getName();
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Select Season")
+                .setItems(seasonNames, (dialog, which) -> {
+                    btnSeasonPicker.setText(seasons.get(which).getName());
+                    fetchEpisodes(seasons.get(which).getSeasonNumber());
+                })
+                .show();
+    }
+    
+    private void fetchCredits() {
+        String token = "Bearer " + Constants.TMDB_ACCESS_TOKEN;
+        int id = Integer.parseInt(movie.getId());
+        Call<CreditsResponse> call = isTVShow ? RetrofitClient.getApi().getTVCredits(token, id) : RetrofitClient.getApi().getMovieCredits(token, id);
+
+        call.enqueue(new Callback<CreditsResponse>() {
+            @Override
+            public void onResponse(Call<CreditsResponse> call, Response<CreditsResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    rvCast.setAdapter(new CastAdapter(MovieDetailActivity.this, response.body().getCast()));
+                    setupDirector(response.body().getCrew());
+                }
+            }
+            @Override
+            public void onFailure(Call<CreditsResponse> call, Throwable t) {}
+        });
+    }
+
+    private void setupDirector(List<Crew> crew) {
+        if (crew == null) return;
+        StringBuilder directors = new StringBuilder();
+        for (Crew member : crew) {
+            if ("Director".equals(member.getJob())) {
+                if (directors.length() > 0) directors.append(", ");
+                directors.append(member.getName());
+            }
+        }
+        if (directors.length() > 0) {
+            rlDirectorSection.setVisibility(View.VISIBLE);
+            tvCrewList.setVisibility(View.VISIBLE);
+            tvCrewList.setText(directors.toString());
+        }
+    }
+
+    private void fetchVideos() {
+        RetrofitClient.getApi().getMovieVideos("Bearer " + Constants.TMDB_ACCESS_TOKEN, Integer.parseInt(movie.getId()))
+            .enqueue(new Callback<VideosResponse>() {
+                @Override
+                public void onResponse(Call<VideosResponse> call, Response<VideosResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        List<Video> videos = response.body().getResults();
+                        if (videos != null) {
+                            for (Video video : videos) {
+                                if ("Trailer".equals(video.getType()) && "YouTube".equals(video.getSite())) {
+                                    setupTrailerButton(video.getKey());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                @Override
+                public void onFailure(Call<VideosResponse> call, Throwable t) {}
+            });
+    }
+
+    private void setupTrailerButton(String key) {
+        btnTrailer.setEnabled(true);
+        btnTrailer.setOnClickListener(v -> showTrailerDialog(key));
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void showTrailerDialog(String key) {
+        View view = getLayoutInflater().inflate(R.layout.dialog_trailer, null);
+        WebView webView = view.findViewById(R.id.trailer_webview);
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl("https://www.youtube.com/embed/" + key + "?autoplay=1");
+
+        new MaterialAlertDialogBuilder(this, R.style.GlassmorphicDialog)
+                .setView(view)
+                .setOnDismissListener(dialog -> webView.destroy())
+                .show();
+    }
+
+    private void showAdsWarning(Episode episode) {
+        String typeLabel = isTVShow ? "TV series" : "movies";
+        String message = "Since we source these " + typeLabel + " from external providers, occasional viewing issues can happen. If that occurs, you can try switching servers by clicking the icon in the top-right corner of the screen.";
+        new MaterialAlertDialogBuilder(this, R.style.GlassmorphicDialog)
+                .setTitle("External Provider")
+                .setMessage(message)
+                .setPositiveButton("I Understand", (dialog, which) -> {
+                    Intent intent = new Intent(MovieDetailActivity.this, PlayerActivity.class);
+                    intent.putExtra("movie", movie);
+                    if (episode != null) {
+                        intent.putExtra("season", episode.getSeasonNumber());
+                        intent.putExtra("episode", episode.getEpisodeNumber());
+                    }
+                    startActivity(intent);
+                })
+                .show();
+    }
+
+    private void saveToHistory() {
+        List<Movie> history = getList(Constants.KEY_WATCH_HISTORY);
+        history.removeIf(m -> m.getId().equals(movie.getId()));
+        history.add(0, movie);
+        if (history.size() > 20) history.remove(history.size() - 1);
+        saveList(Constants.KEY_WATCH_HISTORY, history);
+    }
+
+    private List<Movie> getList(String key) {
+        String json = prefs.getString(key, null);
+        if (json == null) return new ArrayList<>();
+        return gson.fromJson(json, new TypeToken<List<Movie>>(){}.getType());
+    }
+
+    private void saveList(String key, List<Movie> list) {
+        prefs.edit().putString(key, gson.toJson(list)).apply();
+    }
+}

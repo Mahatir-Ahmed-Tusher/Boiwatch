@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Cinematic Dark Blue Theme -->
+    <color name="primary">#0A1428</color> <!-- Deep Navy -->
+    <color name="primary_light">#1E3A8A</color> <!-- Lighter Navy -->
+    <color name="accent">#3B82F6</color> <!-- Electric Blue -->
+    <color name="secondary_accent">#06B6D4</color> <!-- Cyan -->
+    
+    <color name="background">#050B14</color> <!-- Very dark blue/black -->
+    <color name="surface">#0F2942</color> <!-- Slightly lighter surface -->
+    <color name="surface_dark">#0A1428</color>
+    
+    <color name="glass_background">#CC0A1428</color>
+    <color name="glass_border">#333B82F6</color>
+    <color name="glass_overlay">#80000000</color>
+    
+    <color name="text_primary">#F8FAFC</color> <!-- Off-white/slate-50 -->
+    <color name="text_secondary">#94A3B8</color> <!-- Slate-400 -->
+    <color name="text_highlight">#3B82F6</color>
+    <color name="card_background">#1E1E1E</color>
+    <color name="shimmer_base">#2A2A2A</color>
+    <color name="shimmer_highlight">#3D3D3D</color>
+</resources>
