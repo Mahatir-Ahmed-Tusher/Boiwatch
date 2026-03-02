@@ -9,17 +9,26 @@
         <item name="colorOnSecondary">@color/black</item>
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/text_primary</item>
-        <item name="android:windowBackground">@drawable/cinematic_background</item>
-        <item name="android:navigationBarColor">@color/background</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowTranslucentStatus">true</item>
+        
+        <!-- UI Polish: Coal Dark Backgrounds -->
+        <item name="android:windowBackground">#0A0A0A</item>
+        
+        <!-- System Bar Integration -->
+        <item name="android:navigationBarColor">#000000</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o">false</item>
+        
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="fontFamily">@font/outfit</item>
+        <item name="android:fontFamily">@font/outfit</item>
     </style>
 
     <style name="Theme.BoiWatch" parent="Base.Theme.BoiWatch" />
 
     <style name="GlassCard" parent="Widget.Material3.CardView.Elevated">
         <item name="cardBackgroundColor">@color/card_background</item>
-        <item name="cardCornerRadius">16dp</item>
+        <item name="cardCornerRadius">20dp</item>
         <item name="cardElevation">4dp</item>
     </style>
 

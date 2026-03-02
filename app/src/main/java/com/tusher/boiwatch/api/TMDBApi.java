@@ -111,6 +111,12 @@ public interface TMDBApi {
         @Path("tv_id") int tvId
     );
 
+    @GET("tv/{tv_id}/videos")
+    Call<com.tusher.boiwatch.models.VideosResponse> getTVVideos(
+        @Header("Authorization") String token,
+        @Path("tv_id") int tvId
+    );
+
     @GET("collection/{collection_id}")
     Call<com.tusher.boiwatch.models.CollectionResponse> getCollectionDetails(
         @Header("Authorization") String token,

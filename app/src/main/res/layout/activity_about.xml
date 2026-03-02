@@ -31,10 +31,11 @@
             android:padding="24dp">
 
             <ImageView
-                android:layout_width="120dp"
-                android:layout_height="120dp"
+                android:layout_width="150dp"
+                android:layout_height="80dp"
                 android:layout_gravity="center_horizontal"
-                android:src="@drawable/cimana_icon" />
+                android:src="@drawable/boiwatch_logo"
+                android:scaleType="fitCenter" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -50,9 +51,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:text="Version 2.0.1"
+                android:text="Version 2.0.0"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_check_update"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:text="Check for Updates"
+                app:icon="@drawable/ic_expand_more" />
 
             <View
                 android:layout_width="match_parent"

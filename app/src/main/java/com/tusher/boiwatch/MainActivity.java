@@ -1,5 +1,6 @@
 package com.tusher.boiwatch;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
     private DrawerLayout drawerLayout;
     private RecyclerView rvGenres;
     private BottomNavigationView bottomNavigationView;
+    private Fragment homeFragment, searchFragment, reelsFragment, libraryFragment;
+    private Fragment activeFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,35 +38,88 @@ public class MainActivity extends AppCompatActivity {
 
         drawerLayout = findViewById(R.id.drawer_layout);
         rvGenres = findViewById(R.id.rv_genres);
-        bottomNavigationView = findViewById(R.id.bottom_navigation); // Fixed: Added assignment
+        bottomNavigationView = findViewById(R.id.bottom_navigation);
 
         setupDrawer();
 
         if (savedInstanceState == null) {
-            loadFragment(new HomeFragment());
+            homeFragment = new HomeFragment();
+            activeFragment = homeFragment;
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.fragment_container, homeFragment, "home")
+                    .commit();
         }
 
         if (bottomNavigationView != null) {
             bottomNavigationView.setOnItemSelectedListener(item -> {
-                Fragment fragment = null;
                 int itemId = item.getItemId();
                 if (itemId == R.id.nav_home) {
-                    fragment = new HomeFragment();
+                    if (homeFragment == null) homeFragment = new HomeFragment();
+                    switchFragment(homeFragment, "home");
                 } else if (itemId == R.id.nav_search) {
-                    fragment = new SearchFragment();
+                    if (searchFragment == null) searchFragment = new SearchFragment();
+                    switchFragment(searchFragment, "search");
                 } else if (itemId == R.id.nav_reels) {
-                    fragment = new ReelsFragment();
+                    if (reelsFragment == null) reelsFragment = new ReelsFragment();
+                    switchFragment(reelsFragment, "reels");
                 } else if (itemId == R.id.nav_library) {
-                    fragment = new LibraryFragment();
+                    if (libraryFragment == null) libraryFragment = new LibraryFragment();
+                    switchFragment(libraryFragment, "library");
                 }
-                
-                if (fragment != null) {
-                    loadFragment(fragment);
-                    return true;
-                }
-                return false;
+                return true;
             });
         }
+
+        // Check for updates via Firebase Remote Config
+        com.tusher.boiwatch.utils.UpdateHelper.checkForUpdates(this);
+
+        handleIntentExtras();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIntentExtras();
+    }
+
+    private void switchFragment(Fragment fragment, String tag) {
+        if (fragment == activeFragment) return;
+        
+        androidx.fragment.app.FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        if (activeFragment != null) transaction.hide(activeFragment);
+        
+        if (!fragment.isAdded()) {
+            transaction.add(R.id.fragment_container, fragment, tag);
+        } else {
+            transaction.show(fragment);
+        }
+        
+        activeFragment = fragment;
+        transaction.commit();
+    }
+
+    private void handleIntentExtras() {
+        if (getIntent() != null && getIntent().hasExtra("navigate_to")) {
+            String target = getIntent().getStringExtra("navigate_to");
+            if (target != null) {
+                if (target.equals("home")) switchNav(R.id.nav_home);
+                else if (target.equals("search")) switchNav(R.id.nav_search);
+                else if (target.equals("reels")) switchNav(R.id.nav_reels);
+                else if (target.equals("library")) switchNav(R.id.nav_library);
+            }
+        }
+    }
+
+    private void switchNav(int itemId) {
+        if (bottomNavigationView != null) {
+            bottomNavigationView.setSelectedItemId(itemId);
+        }
+    }
+
+    public boolean loadFragment(Fragment fragment, int itemId) {
+        switchNav(itemId);
+        return true;
     }
 
     private void setupDrawer() {
@@ -103,13 +159,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public boolean loadFragment(Fragment fragment) {
-        if (fragment != null) {
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, fragment)
-                    .commit();
-            return true;
-        }
-        return false;
+        switchFragment(fragment, "custom");
+        return true;
     }
 
     private class GenreAdapter extends RecyclerView.Adapter<GenreAdapter.ViewHolder> {
@@ -140,11 +191,12 @@ public class MainActivity extends AppCompatActivity {
             holder.itemView.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.END);
                 if (item.getId() == -100) {
-                    if (bottomNavigationView != null) bottomNavigationView.setSelectedItemId(R.id.nav_reels);
-                    loadFragment(new ReelsFragment());
+                    switchNav(R.id.nav_reels);
                 } else {
-                    if (bottomNavigationView != null) bottomNavigationView.setSelectedItemId(R.id.nav_home);
-                    loadFragment(HomeFragment.newInstance(item.getId(), item.getName()));
+                    switchNav(R.id.nav_home);
+                    if (homeFragment instanceof HomeFragment) {
+                        ((HomeFragment) homeFragment).updateGenre(item.getId(), item.getName());
+                    }
                 }
             });
         }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Glass frost base -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#CC0A0A0A" />
+        </shape>
+    </item>
+    <!-- Frosted highlight shimmer -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#0AFFFFFF"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    <!-- Bottom edge frost line -->
+    <item android:top="-1dp" android:left="-1dp" android:right="-1dp">
+        <shape android:shape="rectangle">
+            <stroke android:width="0.5dp" android:color="#0DFFFFFF" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+</layer-list>

@@ -18,6 +18,8 @@ public class Episode implements Serializable {
     private int seasonNumber;
     @SerializedName("air_date")
     private String airDate;
+    @SerializedName("runtime")
+    private Integer runtime;
 
     public int getId() { return id; }
     public String getName() { return name; }
@@ -26,4 +28,5 @@ public class Episode implements Serializable {
     public int getEpisodeNumber() { return episodeNumber; }
     public int getSeasonNumber() { return seasonNumber; }
     public String getAirDate() { return airDate; }
+    public Integer getRuntime() { return runtime; }
 }

@@ -1,21 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="280dp"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="12dp"
-    app:cardBackgroundColor="@color/card_background"
-    app:strokeWidth="0dp">
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="14dp"
+    app:cardBackgroundColor="#1A1A1A"
+    app:strokeWidth="1dp"
+    app:strokeColor="#2A2A2A">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="110dp"
+        android:orientation="horizontal">
 
         <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="150dp">
+            android:layout_width="160dp"
+            android:layout_height="match_parent">
 
             <ImageView
                 android:id="@+id/iv_episode_still"
@@ -26,29 +28,45 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#40000000" />
+                android:background="#30000000" />
 
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_centerInParent="true"
-                android:src="@drawable/ic_play"
-                app:tint="@color/white" />
+            <!-- Duration Badge -->
+            <TextView
+                android:id="@+id/tv_episode_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_duration_badge"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:text="52m" />
+
+            <!-- Episode Number Circle -->
+            <TextView
+                android:id="@+id/tv_episode_number"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_alignParentBottom="true"
+                android:layout_marginStart="8dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/bg_episode_number"
+                android:gravity="center"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:text="1" />
+
         </RelativeLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:padding="12dp">
-
-            <TextView
-                android:id="@+id/tv_episode_number"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/accent"
-                android:textSize="12sp"
-                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_episode_title"
@@ -57,18 +75,32 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="@color/white"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textSize="17sp"
+                android:fontFamily="@font/outfit"
+                android:textStyle="bold"
+                android:text="Episode Title" />
+
+            <TextView
+                android:id="@+id/tv_episode_date"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#9E9E9E"
+                android:textSize="12sp"
+                android:fontFamily="@font/outfit"
+                android:text="Date" />
 
             <TextView
                 android:id="@+id/tv_episode_overview"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="6dp"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textColor="#BDBDBD"
+                android:textSize="13sp"
+                android:fontFamily="@font/outfit"
+                android:text="Episode overview content goes here..." />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

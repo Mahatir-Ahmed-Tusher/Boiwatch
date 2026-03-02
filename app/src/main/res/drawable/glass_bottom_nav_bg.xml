@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Glass frost background - darker -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#F0080808" />
+            <corners android:topLeftRadius="20dp" android:topRightRadius="20dp" />
+        </shape>
+    </item>
+    <!-- Frosted inner highlight -->
+    <item android:top="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#08FFFFFF"
+                android:endColor="#00000000" />
+            <corners android:topLeftRadius="20dp" android:topRightRadius="20dp" />
+        </shape>
+    </item>
+    <!-- Top edge frost line -->
+    <item android:bottom="-1dp" android:left="-1dp" android:right="-1dp">
+        <shape android:shape="rectangle">
+            <stroke android:width="0.5dp" android:color="#12FFFFFF" />
+            <corners android:topLeftRadius="20dp" android:topRightRadius="20dp" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+</layer-list>

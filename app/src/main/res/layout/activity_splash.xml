@@ -1,26 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/cinematic_background"
-    android:gravity="center"
-    android:orientation="vertical">
+    android:background="@drawable/splash_background">
 
     <ImageView
-        android:layout_width="248dp"
-        android:layout_height="115dp"
-        android:contentDescription="App Logo"
-        android:src="@drawable/cimana_icon" />
+        android:id="@+id/iv_splash_logo"
+        android:layout_width="280dp"
+        android:layout_height="140dp"
+        android:contentDescription="BoiWatch Logo"
+        android:scaleType="fitCenter"
+        android:src="@drawable/boiwatch_logo"
+        app:layout_constraintBottom_toTopOf="@+id/tv_splash_tagline"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed" />
 
     <TextView
+        android:id="@+id/tv_splash_tagline"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:alpha="0.8"
-        android:fontFamily="serif"
-        android:text="Unleash your inner binge-watcher."
+        android:layout_marginTop="16dp"
+        android:fontFamily="sans-serif-light"
+        android:letterSpacing="0.1"
+        android:text="Unleash Your Inner Bingewatcher"
         android:textColor="@color/white"
         android:textSize="14sp"
-        android:textStyle="italic" />
+        android:textStyle="normal"
+        android:textAllCaps="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/iv_splash_logo" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

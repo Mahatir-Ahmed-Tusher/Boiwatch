@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "409486743683",
+    "project_id": "boiwatch-32cc5",
+    "storage_bucket": "boiwatch-32cc5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:409486743683:android:4cdf176b8ecb360b60a3b6",
+        "android_client_info": {
+          "package_name": "com.tusher.boiwatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSe-i4B3HAiPi9JgC6etV6I6NhUH6lCHs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

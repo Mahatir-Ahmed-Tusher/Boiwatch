@@ -20,6 +20,13 @@ public class AboutActivity extends AppCompatActivity {
 
         TextView tvNote = findViewById(R.id.tv_about_note);
         TextView tvLinks = findViewById(R.id.tv_about_links);
+        View btnUpdate = findViewById(R.id.btn_check_update);
+
+        if (btnUpdate != null) {
+            btnUpdate.setOnClickListener(v -> 
+                com.tusher.boiwatch.utils.UpdateHelper.checkForUpdates(this, true)
+            );
+        }
 
         String noteText = "In our local dialect here in Bangladesh, the older generation used to lovingly refer to “movies” as “boi”. When I was brainstorming a name for this app, that familiar word came back to me.  That’s how BoiWatch was born. Even though someone very valuable to me jokingly suggested me to name it 'matflix', I felt sorry for not being able to name this app according to that individual's suggestion.<br/><br/>" +
                 "Building a full-featured mobile streaming app is challenging. All the movies and shows in BoiWatch are streamed from third-party providers. I never intended to include ads or subscriptions. This app was created purely for my own enjoyment and comfort, and I wanted to keep it completely free and ad-free for everyone who uses it.<br/><br/>" +

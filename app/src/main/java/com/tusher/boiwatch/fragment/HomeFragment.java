@@ -99,6 +99,13 @@ public class HomeFragment extends Fragment {
         fabDiscovery = view.findViewById(R.id.fab_discovery);
         removeZone = view.findViewById(R.id.remove_zone);
         ivMenu = view.findViewById(R.id.iv_menu);
+        ImageView ivSearchTop = view.findViewById(R.id.iv_search_top);
+
+        ivSearchTop.setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).loadFragment(new SearchFragment());
+            }
+        });
 
         prefs = getActivity().getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE);
         token = "Bearer " + Constants.TMDB_ACCESS_TOKEN;
@@ -130,17 +137,33 @@ public class HomeFragment extends Fragment {
         ImageView ivClose = headerView.findViewById(R.id.iv_close_genre);
         
         tvTitle.setText("Category: " + selectedGenreName);
-        ivClose.setOnClickListener(v -> {
-            if (getActivity() != null) {
-                ((MainActivity) getActivity()).loadFragment(new HomeFragment());
-            }
-        });
+        ivClose.setOnClickListener(v -> updateGenre(-1, null));
         llDynamicSections.addView(headerView);
 
         // Fetch contents for this genre
         addCategorySection("Popular in " + selectedGenreName, RetrofitClient.getApi().discoverMovie(token, Map.of("with_genres", String.valueOf(selectedGenreId), "sort_by", "popularity.desc")), "movie");
         addCategorySection("Top Rated " + selectedGenreName, RetrofitClient.getApi().discoverMovie(token, Map.of("with_genres", String.valueOf(selectedGenreId), "sort_by", "vote_average.desc")), "movie");
         addCategorySection("Recent " + selectedGenreName, RetrofitClient.getApi().discoverMovie(token, Map.of("with_genres", String.valueOf(selectedGenreId), "sort_by", "primary_release_date.desc")), "movie");
+    }
+
+    public void updateGenre(int genreId, String genreName) {
+        this.selectedGenreId = genreId;
+        this.selectedGenreName = genreName;
+        
+        if (llDynamicSections != null) {
+            llDynamicSections.removeAllViews();
+        }
+        
+        if (selectedGenreId != -1) {
+            setupGenreMode();
+        } else {
+            heroViewPager.setVisibility(View.VISIBLE);
+            heroIndicator.setVisibility(View.VISIBLE);
+            tvContinueWatching.setVisibility(View.VISIBLE);
+            rvContinueWatching.setVisibility(View.VISIBLE);
+            fetchTrendingAll();
+            fetchDynamicSections();
+        }
     }
 
     private void setupMenu() {
@@ -171,6 +194,13 @@ public class HomeFragment extends Fragment {
         MaterialSwitch switchDiscovery = dialogView.findViewById(R.id.switch_discovery_visibility);
         MaterialButton btnClearHistory = dialogView.findViewById(R.id.btn_clear_history);
         MaterialButton btnClearAll = dialogView.findViewById(R.id.btn_clear_all);
+        MaterialButton btnCheckUpdate = dialogView.findViewById(R.id.btn_check_update);
+        
+        if (btnCheckUpdate != null) {
+            btnCheckUpdate.setOnClickListener(v -> 
+                com.tusher.boiwatch.utils.UpdateHelper.checkForUpdates(getContext(), true)
+            );
+        }
         
         boolean isVisible = prefs.getBoolean(Constants.KEY_DISCOVERY_VISIBLE, true);
         switchDiscovery.setChecked(isVisible);

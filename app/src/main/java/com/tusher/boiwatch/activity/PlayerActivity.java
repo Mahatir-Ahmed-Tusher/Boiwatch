@@ -12,6 +12,9 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.GestureDetector;
+import android.media.AudioManager;
+import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -67,6 +70,19 @@ public class PlayerActivity extends AppCompatActivity {
     private WebChromeClient.CustomViewCallback mCustomViewCallback;
     private FrameLayout fullscreenContainer;
 
+    // Gesture controls members
+    private GestureDetector gestureDetector;
+    private AudioManager audioManager;
+    private float currentBrightness = -1f;
+    private int maxVolume;
+    private View gestureIndicator;
+    private ImageView ivGestureIcon;
+    private TextView tvGestureText;
+    private Handler gestureHandler = new Handler();
+    private Runnable hideGestureIndicator = () -> {
+        if (gestureIndicator != null) gestureIndicator.setVisibility(View.GONE);
+    };
+
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,6 +129,8 @@ public class PlayerActivity extends AppCompatActivity {
             }
         });
 
+        setupGestureControls();
+        initGestureViews();
         setupWebView();
         
         // Handle clicks on controls layout to toggle visibility or reset timer
@@ -202,6 +220,94 @@ public class PlayerActivity extends AppCompatActivity {
         }
     }
 
+    private void initGestureViews() {
+        gestureIndicator = findViewById(R.id.cv_gesture_indicator);
+        ivGestureIcon = findViewById(R.id.iv_gesture_icon);
+        tvGestureText = findViewById(R.id.tv_gesture_text);
+    }
+
+    private void showGestureIndicator(int iconRes, String text) {
+        if (gestureIndicator == null) return;
+        
+        gestureHandler.removeCallbacks(hideGestureIndicator);
+        ivGestureIcon.setImageResource(iconRes);
+        tvGestureText.setText(text);
+        gestureIndicator.setVisibility(View.VISIBLE);
+        gestureHandler.postDelayed(hideGestureIndicator, 1500);
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void setupGestureControls() {
+        audioManager = (AudioManager) getSystemService(Context.MODE_PRIVATE != 0 ? Context.AUDIO_SERVICE : Context.AUDIO_SERVICE);
+        maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                float x = e.getX();
+                if (x < webView.getWidth() / 2) {
+                    seekBy(-10);
+                    showGestureIndicator(R.drawable.ic_fast_rewind, "-10s");
+                } else {
+                    seekBy(10);
+                    showGestureIndicator(R.drawable.ic_fast_forward, "+10s");
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                if (e1 == null || e2 == null) return false;
+
+                float x = e1.getX();
+                float deltaY = e1.getY() - e2.getY(); // Positive means sliding UP
+                float percent = deltaY / webView.getHeight();
+
+                if (x < webView.getWidth() / 2) {
+                    adjustBrightness(percent);
+                } else {
+                    adjustVolume(percent);
+                }
+                return true;
+            }
+        });
+    }
+
+    private void adjustVolume(float percent) {
+        int currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        int delta = (int) (percent * maxVolume * 1.5f); // Sensitivity boost
+        int newVol = Math.max(0, Math.min(maxVolume, currentVol + delta));
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0);
+        
+        int volPercent = (int) ((newVol / (float) maxVolume) * 100);
+        showGestureIndicator(R.drawable.ic_volume_on, volPercent + "%");
+    }
+
+    private void adjustBrightness(float percent) {
+        if (currentBrightness == -1f) {
+            currentBrightness = getWindow().getAttributes().screenBrightness;
+            if (currentBrightness < 0) currentBrightness = 0.5f; // Default if not set
+        }
+
+        currentBrightness = Math.max(0.01f, Math.min(1.0f, currentBrightness + percent * 1.5f));
+        WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
+        layoutParams.screenBrightness = currentBrightness;
+        getWindow().setAttributes(layoutParams);
+
+        int briPercent = (int) (currentBrightness * 100);
+        showGestureIndicator(R.drawable.ic_brightness, briPercent + "%");
+    }
+
+    private void seekBy(int seconds) {
+        String js = "javascript:(function() {" +
+                "  var videos = document.getElementsByTagName('video');" +
+                "  for (var i = 0; i < videos.length; i++) {" +
+                "    videos[i].currentTime += " + seconds + ";" +
+                "  }" +
+                "})()";
+        webView.evaluateJavascript(js, null);
+    }
+
     private void showServerSelectionDialog(List<PlayerSource> sources) {
         BottomSheetDialog dialog = new BottomSheetDialog(this, R.style.GlassmorphicDialog);
         View view = getLayoutInflater().inflate(R.layout.dialog_server_selection, null);
@@ -239,12 +345,17 @@ public class PlayerActivity extends AppCompatActivity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
 
-        // This is key: catch touch events on WebView to show controls
+        // This is key: catch touch events on WebView to show controls and handle gestures
         webView.setOnTouchListener((v, event) -> {
+            boolean gestureHandled = gestureDetector.onTouchEvent(event);
+            
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 showControls();
             }
-            return false; // Don't consume so WebView still works (scrolling, clicking player buttons)
+            
+            // If the gesture detector handled it (scroll/double tap), we still return false
+            // to allow the WebView to receive events if needed, BUT we've done our action.
+            return gestureHandled; 
         });
 
         webView.setWebViewClient(new WebViewClient() {
@@ -309,7 +420,17 @@ public class PlayerActivity extends AppCompatActivity {
                 fullscreenContainer.setBackgroundColor(getResources().getColor(android.R.color.black));
                 fullscreenContainer.addView(view, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                 
+                // Add gesture support to the fullscreen container as well
+                fullscreenContainer.setOnTouchListener((v, event) -> gestureDetector.onTouchEvent(event));
+                
                 ((ViewGroup) getWindow().getDecorView()).addView(fullscreenContainer, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                
+                // Reparent the gesture indicator to the fullscreen container to keep it on top
+                if (gestureIndicator != null && gestureIndicator.getParent() != null) {
+                    ((ViewGroup) gestureIndicator.getParent()).removeView(gestureIndicator);
+                    fullscreenContainer.addView(gestureIndicator);
+                }
+                
                 playerControls.setVisibility(View.GONE);
                 webView.setVisibility(View.GONE);
                 
@@ -323,6 +444,13 @@ public class PlayerActivity extends AppCompatActivity {
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
                 
                 ((ViewGroup) getWindow().getDecorView()).removeView(fullscreenContainer);
+                
+                // Restore the gesture indicator to the main layout
+                if (gestureIndicator != null && gestureIndicator.getParent() != null) {
+                    ((ViewGroup) gestureIndicator.getParent()).removeView(gestureIndicator);
+                    ((ViewGroup) findViewById(R.id.player_controls)).addView(gestureIndicator);
+                }
+                
                 fullscreenContainer = null;
                 mCustomView = null;
                 mCustomViewCallback.onCustomViewHidden();

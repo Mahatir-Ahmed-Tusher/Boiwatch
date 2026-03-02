@@ -40,8 +40,22 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Episode episode = episodes.get(position);
         holder.tvTitle.setText(episode.getName());
-        holder.tvNumber.setText("Episode " + episode.getEpisodeNumber());
+        holder.tvNumber.setText(String.valueOf(episode.getEpisodeNumber()));
         holder.tvOverview.setText(episode.getOverview());
+
+        if (episode.getAirDate() != null) {
+            holder.tvDate.setText(episode.getAirDate());
+            holder.tvDate.setVisibility(View.VISIBLE);
+        } else {
+            holder.tvDate.setVisibility(View.GONE);
+        }
+
+        if (episode.getRuntime() != null && episode.getRuntime() > 0) {
+            holder.tvDuration.setText(episode.getRuntime() + "m");
+            holder.tvDuration.setVisibility(View.VISIBLE);
+        } else {
+            holder.tvDuration.setVisibility(View.GONE);
+        }
 
         Picasso.get()
                 .load(episode.getStillPath())
@@ -62,7 +76,7 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView ivStill;
-        TextView tvTitle, tvNumber, tvOverview;
+        TextView tvTitle, tvNumber, tvOverview, tvDate, tvDuration;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -70,6 +84,8 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
             tvTitle = itemView.findViewById(R.id.tv_episode_title);
             tvNumber = itemView.findViewById(R.id.tv_episode_number);
             tvOverview = itemView.findViewById(R.id.tv_episode_overview);
+            tvDate = itemView.findViewById(R.id.tv_episode_date);
+            tvDuration = itemView.findViewById(R.id.tv_episode_duration);
         }
     }
 }

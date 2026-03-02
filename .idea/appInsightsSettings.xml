@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.tusher.boiwatch" />
+                  <option name="mobileSdkAppId" value="1:409486743683:android:4cdf176b8ecb360b60a3b6" />
+                  <option name="projectId" value="boiwatch-32cc5" />
+                  <option name="projectNumber" value="409486743683" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

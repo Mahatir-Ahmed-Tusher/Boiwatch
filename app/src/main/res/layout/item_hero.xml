@@ -33,14 +33,17 @@
             android:textColor="@color/white"
             android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
+        <ImageView
             android:id="@+id/btn_play_hero"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="160dp"
+            android:layout_height="56dp"
             android:layout_marginTop="16dp"
-            android:text="Watch Now"
-            app:icon="@drawable/ic_play" />
+            android:src="@drawable/watch_now_btnnn"
+            android:scaleType="fitCenter"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:elevation="4dp" />
 
     </LinearLayout>
 

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +17,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -29,6 +31,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.squareup.picasso.Picasso;
 import com.tusher.boiwatch.Constants;
+import com.tusher.boiwatch.MainActivity;
 import com.tusher.boiwatch.R;
 import com.tusher.boiwatch.adapter.CastAdapter;
 import com.tusher.boiwatch.adapter.EpisodeAdapter;
@@ -56,7 +59,8 @@ public class MovieDetailActivity extends AppCompatActivity {
     private SharedPreferences prefs;
     private Gson gson = new Gson();
     private RecyclerView rvCast, rvEpisodes, rvPhotos;
-    private MaterialButton btnTrailer, btnSeasonPicker, btnPlay;
+    private View btnTrailer, btnPlay; // Changed from MaterialButton to View
+    private MaterialButton btnSeasonPicker;
     private TextView tvCrewList, tvYear;
     private RelativeLayout rlDirectorSection;
     private LinearLayout llEpisodesSection;
@@ -126,6 +130,79 @@ public class MovieDetailActivity extends AppCompatActivity {
 
         btnTrailer.setEnabled(false); 
         btnSeasonPicker.setOnClickListener(v -> showSeasonPickerDialog());
+
+        MaterialButton btnWatchlist = findViewById(R.id.btn_watchlist);
+        updateWatchlistIcon(btnWatchlist);
+
+        btnWatchlist.setOnClickListener(v -> {
+            toggleWatchlist();
+            updateWatchlistIcon(btnWatchlist);
+        });
+
+        setupNavigation();
+    }
+
+    private void updateWatchlistIcon(MaterialButton btn) {
+        if (isInWatchlist()) {
+            btn.setIconTint(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#3B82F6")));
+        } else {
+            btn.setIconTint(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F8FAFC")));
+        }
+    }
+
+    private boolean isInWatchlist() {
+        List<Movie> watchlist = getList(Constants.KEY_WATCHLIST);
+        for (Movie m : watchlist) {
+            if (m.getId().equals(movie.getId())) return true;
+        }
+        return false;
+    }
+
+    private void toggleWatchlist() {
+        List<Movie> watchlist = getList(Constants.KEY_WATCHLIST);
+        boolean exists = false;
+        
+        for (int i = 0; i < watchlist.size(); i++) {
+            if (watchlist.get(i).getId().equals(movie.getId())) {
+                watchlist.remove(i);
+                exists = true;
+                break;
+            }
+        }
+
+        if (!exists) {
+            watchlist.add(0, movie);
+            Toast.makeText(this, "Added to Watchlist", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Removed from Watchlist", Toast.LENGTH_SHORT).show();
+        }
+
+        saveList(Constants.KEY_WATCHLIST, watchlist);
+    }
+
+    private void setupNavigation() {
+        com.google.android.material.bottomnavigation.BottomNavigationView navView = findViewById(R.id.bottom_navigation);
+        navView.setSelectedItemId(-1); // Don't select any by default since we're in detail
+        
+        navView.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            
+            if (id == R.id.nav_home) {
+                intent.putExtra("navigate_to", "home");
+            } else if (id == R.id.nav_search) {
+                intent.putExtra("navigate_to", "search");
+            } else if (id == R.id.nav_reels) {
+                intent.putExtra("navigate_to", "reels");
+            } else if (id == R.id.nav_library) {
+                intent.putExtra("navigate_to", "library");
+            }
+            
+            startActivity(intent);
+            finish();
+            return true;
+        });
     }
 
     private void detectMediaType() {
@@ -170,7 +247,13 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     private void setupTVShowUI(TVDetailResponse details) {
         isTVShow = true;
-        btnPlay.setText("View Episodes");
+        if (btnPlay instanceof ImageView) {
+            ((ImageView) btnPlay).setImageResource(R.drawable.view_episodes);
+            ViewGroup.LayoutParams params = btnPlay.getLayoutParams();
+            params.width = (int) (155 * getResources().getDisplayMetrics().density);
+            params.height = (int) (50 * getResources().getDisplayMetrics().density);
+            btnPlay.setLayoutParams(params);
+        }
         seasons = details.getSeasons();
         llEpisodesSection.setVisibility(View.VISIBLE);
         if (seasons != null && !seasons.isEmpty()) {
@@ -201,7 +284,13 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     private void loadAsMovie() {
         isTVShow = false;
-        btnPlay.setText("Watch Now");
+        if (btnPlay instanceof ImageView) {
+            ((ImageView) btnPlay).setImageResource(R.drawable.play_now);
+            ViewGroup.LayoutParams params = btnPlay.getLayoutParams();
+            params.width = (int) (125 * getResources().getDisplayMetrics().density);
+            params.height = (int) (44 * getResources().getDisplayMetrics().density);
+            btnPlay.setLayoutParams(params);
+        }
         llEpisodesSection.setVisibility(View.GONE);
     }
 
@@ -293,8 +382,18 @@ public class MovieDetailActivity extends AppCompatActivity {
     }
 
     private void fetchVideos() {
-        RetrofitClient.getApi().getMovieVideos("Bearer " + Constants.TMDB_ACCESS_TOKEN, Integer.parseInt(movie.getId()))
-            .enqueue(new Callback<VideosResponse>() {
+        String token = "Bearer " + Constants.TMDB_ACCESS_TOKEN;
+        int id = Integer.parseInt(movie.getId());
+        
+        // Use TV videos endpoint for TV shows, movie videos for movies
+        Call<VideosResponse> call;
+        if ("tv".equals(movie.getMediaType())) {
+            call = RetrofitClient.getApi().getTVVideos(token, id);
+        } else {
+            call = RetrofitClient.getApi().getMovieVideos(token, id);
+        }
+        
+        call.enqueue(new Callback<VideosResponse>() {
                 @Override
                 public void onResponse(Call<VideosResponse> call, Response<VideosResponse> response) {
                     if (response.isSuccessful() && response.body() != null) {
@@ -303,7 +402,45 @@ public class MovieDetailActivity extends AppCompatActivity {
                             for (Video video : videos) {
                                 if ("Trailer".equals(video.getType()) && "YouTube".equals(video.getSite())) {
                                     setupTrailerButton(video.getKey());
-                                    break;
+                                    return;
+                                }
+                            }
+                            // If no Trailer found, try Teaser
+                            for (Video video : videos) {
+                                if ("Teaser".equals(video.getType()) && "YouTube".equals(video.getSite())) {
+                                    setupTrailerButton(video.getKey());
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // If this was a TV call that failed to find videos, try movie endpoint as fallback
+                    if ("tv".equals(movie.getMediaType())) {
+                        fetchMovieVideosFallback();
+                    }
+                }
+                @Override
+                public void onFailure(Call<VideosResponse> call, Throwable t) {
+                    if ("tv".equals(movie.getMediaType())) {
+                        fetchMovieVideosFallback();
+                    }
+                }
+            });
+    }
+
+    private void fetchMovieVideosFallback() {
+        RetrofitClient.getApi().getMovieVideos("Bearer " + Constants.TMDB_ACCESS_TOKEN, Integer.parseInt(movie.getId()))
+            .enqueue(new Callback<VideosResponse>() {
+                @Override
+                public void onResponse(Call<VideosResponse> call, Response<VideosResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        List<Video> videos = response.body().getResults();
+                        if (videos != null) {
+                            for (Video video : videos) {
+                                if (("Trailer".equals(video.getType()) || "Teaser".equals(video.getType())) && "YouTube".equals(video.getSite())) {
+                                    setupTrailerButton(video.getKey());
+                                    return;
                                 }
                             }
                         }
@@ -326,14 +463,47 @@ public class MovieDetailActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        settings.setAllowContentAccess(true);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        
+        // Fix for Error 150/153: Set a proper mobile User-Agent
+        // Use a desktop-like but compatible UA to avoid the "mobile web" UI (red mark)
+        // and get the clean embedded player (green mark)
+        String cleanUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36";
+        settings.setUserAgentString(cleanUA);
+
         webView.setWebChromeClient(new WebChromeClient());
-        webView.setWebViewClient(new WebViewClient());
-        webView.loadUrl("https://www.youtube.com/embed/" + key + "?autoplay=1");
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                openYouTubeFallback(key);
+            }
+        });
+
+        // Clean embed parameters: modestbranding=1, rel=0, showinfo=0
+        String iframeHtml = "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><style>body { margin: 0; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; } .video-container { position: relative; width: 100%; padding-bottom: 56.25%; height: 0; } .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }</style></head><body><div class=\"video-container\"><iframe id=\"yt_player\" src=\"https://www.youtube.com/embed/" + key + "?autoplay=1&rel=0&modestbranding=1&controls=1&showinfo=0&origin=https://www.youtube.com\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div><script>var tag = document.createElement('script'); tag.src = \"https://www.youtube.com/iframe_api\"; var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);</script></body></html>";
+        webView.loadDataWithBaseURL("https://www.youtube.com", iframeHtml, "text/html", "utf-8", null);
 
         new MaterialAlertDialogBuilder(this, R.style.GlassmorphicDialog)
                 .setView(view)
+                .setNeutralButton("Open in YouTube", (dialog, which) -> openYouTubeFallback(key))
                 .setOnDismissListener(dialog -> webView.destroy())
                 .show();
+    }
+
+    private void openYouTubeFallback(String key) {
+        try {
+            // Try YouTube app first
+            Intent ytIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + key));
+            startActivity(ytIntent);
+        } catch (Exception e) {
+            // Fallback to browser
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=" + key));
+            startActivity(browserIntent);
+        }
     }
 
     private void showAdsWarning(Episode episode) {
