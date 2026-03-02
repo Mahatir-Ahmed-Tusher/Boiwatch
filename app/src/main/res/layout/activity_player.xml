@@ -14,7 +14,15 @@
         android:id="@+id/player_controls"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#88000000">
+        android:background="@android:color/transparent">
+
+        <!-- Top Gradient Shadow (Only visible when controls are shown) -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:background="@drawable/hero_gradient"
+            android:rotation="180"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/player_toolbar"

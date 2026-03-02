@@ -7,7 +7,9 @@ import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.ConsoleMessage;
@@ -44,6 +46,7 @@ public class PlayerActivity extends AppCompatActivity {
     private static final String TAG = "PlayerActivity";
     private WebView webView;
     private ProgressBar progressBar;
+    private View playerControls;
     private Movie movie;
     private int season = -1;
     private int episode = -1;
@@ -53,8 +56,12 @@ public class PlayerActivity extends AppCompatActivity {
     private int currentSourceIndex = 0;
     private boolean isErrorOccurred = false;
 
-    private Handler timeoutHandler = new Handler();
+    private Handler timeoutHandler = new Handler(Looper.getMainLooper());
     private Runnable timeoutRunnable = this::tryNextSource;
+
+    private Handler hideControlsHandler = new Handler(Looper.getMainLooper());
+    private Runnable hideControlsRunnable = this::hideControls;
+    private static final long CONTROLS_HIDE_DELAY = 3000; // 3 seconds
 
     private View mCustomView;
     private WebChromeClient.CustomViewCallback mCustomViewCallback;
@@ -79,11 +86,14 @@ public class PlayerActivity extends AppCompatActivity {
         
         initViews();
         loadSources();
+        startHideControlsTimer();
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private void initViews() {
         webView = findViewById(R.id.webview_player);
         progressBar = findViewById(R.id.player_progress);
+        playerControls = findViewById(R.id.player_controls);
         TextView tvTitle = findViewById(R.id.tv_player_movie_title);
         ImageView ivServerSelect = findViewById(R.id.iv_server_select);
 
@@ -97,13 +107,48 @@ public class PlayerActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> onBackPressed());
         
         ivServerSelect.setOnClickListener(v -> {
+            resetHideControlsTimer();
             if (availableSources != null) {
                 showServerSelectionDialog(availableSources);
             }
         });
 
         setupWebView();
+        
+        // Handle clicks on controls layout to toggle visibility or reset timer
+        playerControls.setOnClickListener(v -> toggleControls());
+        
         setFullscreen();
+    }
+
+    private void toggleControls() {
+        if (playerControls.getVisibility() == View.VISIBLE) {
+            hideControls();
+        } else {
+            showControls();
+        }
+    }
+
+    private void showControls() {
+        playerControls.setVisibility(View.VISIBLE);
+        setFullscreen();
+        startHideControlsTimer();
+    }
+
+    private void hideControls() {
+        playerControls.setVisibility(View.GONE);
+        setFullscreen();
+    }
+
+    private void startHideControlsTimer() {
+        hideControlsHandler.removeCallbacks(hideControlsRunnable);
+        hideControlsHandler.postDelayed(hideControlsRunnable, CONTROLS_HIDE_DELAY);
+    }
+
+    private void resetHideControlsTimer() {
+        if (playerControls.getVisibility() == View.VISIBLE) {
+            startHideControlsTimer();
+        }
     }
 
     private void loadSources() {
@@ -183,7 +228,7 @@ public class PlayerActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
+    @SuppressLint({"SetJavaScriptEnabled", "ClickableViewAccessibility"})
     private void setupWebView() {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -193,6 +238,14 @@ public class PlayerActivity extends AppCompatActivity {
         settings.setSupportMultipleWindows(false);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
+
+        // This is key: catch touch events on WebView to show controls
+        webView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                showControls();
+            }
+            return false; // Don't consume so WebView still works (scrolling, clicking player buttons)
+        });
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -257,7 +310,7 @@ public class PlayerActivity extends AppCompatActivity {
                 fullscreenContainer.addView(view, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                 
                 ((ViewGroup) getWindow().getDecorView()).addView(fullscreenContainer, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                findViewById(R.id.player_controls).setVisibility(View.GONE);
+                playerControls.setVisibility(View.GONE);
                 webView.setVisibility(View.GONE);
                 
                 setFullscreen();
@@ -274,7 +327,7 @@ public class PlayerActivity extends AppCompatActivity {
                 mCustomView = null;
                 mCustomViewCallback.onCustomViewHidden();
                 
-                findViewById(R.id.player_controls).setVisibility(View.VISIBLE);
+                playerControls.setVisibility(View.VISIBLE);
                 webView.setVisibility(View.VISIBLE);
                 
                 setFullscreen();
@@ -324,7 +377,6 @@ public class PlayerActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         if (mCustomView != null) {
-            setupWebView(); // Triggers onHideCustomView logic if applicable
             webView.getWebChromeClient().onHideCustomView();
         } else if (webView.canGoBack()) {
             webView.goBack();
@@ -339,6 +391,7 @@ public class PlayerActivity extends AppCompatActivity {
         webView.onPause();
         webView.pauseTimers();
         timeoutHandler.removeCallbacks(timeoutRunnable);
+        hideControlsHandler.removeCallbacks(hideControlsRunnable);
     }
 
     @Override
@@ -353,6 +406,7 @@ public class PlayerActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         timeoutHandler.removeCallbacks(timeoutRunnable);
+        hideControlsHandler.removeCallbacks(hideControlsRunnable);
         webView.destroy();
     }
 }
