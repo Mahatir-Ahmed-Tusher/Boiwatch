@@ -44,6 +44,26 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="Personalization"
+        android:textColor="@color/accent"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_reorder_sections"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="start|center_vertical"
+        android:text="Customize Home Sections"
+        android:textColor="@color/white"
+        app:icon="@drawable/ic_menu"
+        app:iconTint="@color/white" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="Storage &amp; Privacy"
         android:textColor="@color/accent"
         android:textSize="14sp"
@@ -83,7 +103,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="About &amp; Updates"
+        android:text="Updates"
         android:textColor="@color/accent"
         android:textSize="14sp"
         android:textStyle="bold" />

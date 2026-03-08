@@ -177,6 +177,18 @@ public class ShortsAdapter extends RecyclerView.Adapter<ShortsAdapter.ViewHolder
             }
         }
 
+        public void pause() {
+            if (webView != null && isLoaded) {
+                webView.evaluateJavascript("try { document.querySelector('video').pause(); } catch(e){}", null);
+            }
+        }
+
+        public void resume() {
+            if (webView != null && isLoaded) {
+                webView.evaluateJavascript("try { document.querySelector('video').play(); } catch(e){}", null);
+            }
+        }
+
         public void recycle() {
             if (webView == null) return;
             try {

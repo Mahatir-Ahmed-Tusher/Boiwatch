@@ -12,11 +12,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
+import com.squareup.picasso.Picasso;
 import com.tusher.boiwatch.fragment.HomeFragment;
 import com.tusher.boiwatch.fragment.LibraryFragment;
+import com.tusher.boiwatch.fragment.AudiobooksFragment;
 import com.tusher.boiwatch.fragment.ReelsFragment;
 import com.tusher.boiwatch.fragment.SearchFragment;
 import com.tusher.boiwatch.models.Genre;
@@ -28,8 +34,38 @@ public class MainActivity extends AppCompatActivity {
     private DrawerLayout drawerLayout;
     private RecyclerView rvGenres;
     private BottomNavigationView bottomNavigationView;
-    private Fragment homeFragment, searchFragment, reelsFragment, libraryFragment;
+    private Fragment homeFragment, searchFragment, reelsFragment, libraryFragment, audiobooksFragment;
     private Fragment activeFragment;
+    private com.tusher.boiwatch.models.Audiobook currentAudiobook;
+    
+    // Mini-Player Views
+    private View cardMiniPlayer;
+    private ImageView ivMiniThumb, btnMiniPlay, btnMiniClose;
+    private TextView tvMiniTitle;
+    
+    private final BroadcastReceiver audiobookStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("ACTION_AUDIOBOOK_STATE".equals(intent.getAction())) {
+                boolean isPlaying = intent.getBooleanExtra("isPlaying", false);
+                String title = intent.getStringExtra("title");
+                String cover = intent.getStringExtra("cover");
+                
+                currentAudiobook = (com.tusher.boiwatch.models.Audiobook) intent.getSerializableExtra("audiobook");
+                
+                if (cardMiniPlayer.getVisibility() == View.GONE) {
+                    cardMiniPlayer.setVisibility(View.VISIBLE);
+                }
+                
+                tvMiniTitle.setText(title);
+                btnMiniPlay.setImageResource(isPlaying ? android.R.drawable.ic_media_pause : R.drawable.ic_play);
+                
+                if (cover != null && !cover.isEmpty()) {
+                    Picasso.get().load(cover).into(ivMiniThumb);
+                }
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +75,36 @@ public class MainActivity extends AppCompatActivity {
         drawerLayout = findViewById(R.id.drawer_layout);
         rvGenres = findViewById(R.id.rv_genres);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
+        
+        // Init Mini-Player
+        cardMiniPlayer = findViewById(R.id.card_mini_player);
+        ivMiniThumb = findViewById(R.id.iv_mini_thumb);
+        tvMiniTitle = findViewById(R.id.tv_mini_title);
+        btnMiniPlay = findViewById(R.id.btn_mini_play);
+        btnMiniClose = findViewById(R.id.btn_mini_close);
+        
+        btnMiniPlay.setOnClickListener(v -> {
+            Intent intent = new Intent("ACTION_AUDIOBOOK_CONTROL");
+            intent.putExtra("cmd", "toggle");
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        });
+        
+        btnMiniClose.setOnClickListener(v -> {
+            Intent intent = new Intent("ACTION_AUDIOBOOK_CONTROL");
+            intent.putExtra("cmd", "close");
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+            cardMiniPlayer.setVisibility(View.GONE);
+        });
+        
+        cardMiniPlayer.setOnClickListener(v -> {
+            if (currentAudiobook != null) {
+                Intent intent = new Intent(this, com.tusher.boiwatch.activity.AudiobookPlayerActivity.class);
+                intent.putExtra("audiobook", currentAudiobook);
+                startActivity(intent);
+            }
+        });
+        
+        LocalBroadcastManager.getInstance(this).registerReceiver(audiobookStateReceiver, new IntentFilter("ACTION_AUDIOBOOK_STATE"));
 
         setupDrawer();
 
@@ -65,6 +131,9 @@ public class MainActivity extends AppCompatActivity {
                 } else if (itemId == R.id.nav_library) {
                     if (libraryFragment == null) libraryFragment = new LibraryFragment();
                     switchFragment(libraryFragment, "library");
+                } else if (itemId == R.id.nav_audiobooks) {
+                    if (audiobooksFragment == null) audiobooksFragment = new AudiobooksFragment();
+                    switchFragment(audiobooksFragment, "audiobooks");
                 }
                 return true;
             });
@@ -74,6 +143,35 @@ public class MainActivity extends AppCompatActivity {
         com.tusher.boiwatch.utils.UpdateHelper.checkForUpdates(this);
 
         handleIntentExtras();
+        adjustBottomNavIconSize();
+    }
+
+    private void adjustBottomNavIconSize() {
+        // Targets: Search, Audiobooks, Library
+        // Home and Reels remain default (26dp from XML)
+        int targetSize = (int) (32 * getResources().getDisplayMetrics().density);
+        
+        ViewGroup menuView = (ViewGroup) bottomNavigationView.getChildAt(0);
+        for (int i = 0; i < menuView.getChildCount(); i++) {
+            View itemView = menuView.getChildAt(i);
+            int id = itemView.getId();
+            
+            if (id == R.id.nav_search || id == R.id.nav_audiobooks || id == R.id.nav_library) {
+                View iconView = itemView.findViewById(com.google.android.material.R.id.navigation_bar_item_icon_view);
+                if (iconView != null) {
+                    ViewGroup.LayoutParams params = iconView.getLayoutParams();
+                    params.width = targetSize;
+                    params.height = targetSize;
+                    iconView.setLayoutParams(params);
+                }
+            }
+        }
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(audiobookStateReceiver);
     }
 
     @Override
@@ -107,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
                 else if (target.equals("search")) switchNav(R.id.nav_search);
                 else if (target.equals("reels")) switchNav(R.id.nav_reels);
                 else if (target.equals("library")) switchNav(R.id.nav_library);
+                else if (target.equals("audiobooks")) switchNav(R.id.nav_audiobooks);
             }
         }
     }

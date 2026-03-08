@@ -86,6 +86,13 @@ public class ReelsFragment extends Fragment {
     private void playAtPosition(int position) {
         if (recyclerView == null || shortList == null || position < 0 || position >= shortList.size()) return;
         
+        // Auto-pause background audiobook if playing
+        if (getContext() != null) {
+            android.content.Intent pauseIntent = new android.content.Intent("ACTION_AUDIOBOOK_CONTROL");
+            pauseIntent.putExtra("cmd", "pause");
+            androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(getContext()).sendBroadcast(pauseIntent);
+        }
+
         // Find the ViewHolder and trigger its internal play logic
         ShortsAdapter.ViewHolder holder = (ShortsAdapter.ViewHolder) recyclerView.findViewHolderForAdapterPosition(position);
         if (holder != null) {
@@ -291,10 +298,71 @@ public class ReelsFragment extends Fragment {
     }
 
     @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (hidden) {
+            stopAllReels();
+        } else {
+            resumeCurrentReel();
+        }
+    }
+
+    @Override
     public void onDestroyView() {
+        stopAllReels();
         super.onDestroyView();
         if (recyclerView != null) {
             recyclerView.setAdapter(null);
         }
     }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopAllReels();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // ONLY resume if the fragment is actually visible to the user
+        if (!isHidden()) {
+            resumeCurrentReel();
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        stopAllReels();
+    }
+
+    /**
+     * Aggressively stops ALL Reels playback. Pauses and recycles every
+     * visible ViewHolder so no WebView continues playing in the background.
+     */
+    private void stopAllReels() {
+        if (recyclerView == null) return;
+        for (int i = 0; i < recyclerView.getChildCount(); i++) {
+            RecyclerView.ViewHolder vh = recyclerView.getChildViewHolder(recyclerView.getChildAt(i));
+            if (vh instanceof ShortsAdapter.ViewHolder) {
+                ((ShortsAdapter.ViewHolder) vh).pause();
+                ((ShortsAdapter.ViewHolder) vh).recycle();
+            }
+        }
+    }
+
+    /**
+     * Resumes only the currently visible Reel (if any).
+     */
+    private void resumeCurrentReel() {
+        if (recyclerView != null && currentPosition >= 0) {
+            ShortsAdapter.ViewHolder holder = (ShortsAdapter.ViewHolder) 
+                    recyclerView.findViewHolderForAdapterPosition(currentPosition);
+            if (holder != null) {
+                holder.play();
+            }
+        }
+    }
 }
+

@@ -18,16 +18,15 @@
             <LinearLayout
                 android:id="@+id/ll_home_toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="57dp"
+                android:layout_height="56dp"
                 android:background="@drawable/glass_top_toolbar_bg"
                 android:gravity="center_vertical"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp">
+                android:paddingHorizontal="20dp">
 
                 <ImageView
-                    android:layout_width="152dp"
-                    android:layout_height="58dp"
-                    android:scaleType="fitCenter"
+                    android:layout_width="122dp"
+                    android:layout_height="32dp"
+                    android:scaleType="fitStart"
                     android:src="@drawable/cimana_icon" />
 
                 <View
@@ -37,21 +36,22 @@
 
                 <ImageView
                     android:id="@+id/iv_search_top"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:padding="12dp"
+                    android:padding="8dp"
                     android:src="@drawable/ic_search"
-                    app:tint="@color/white" />
+                    app:tint="@color/text_primary" />
 
                 <ImageView
                     android:id="@+id/iv_menu"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:padding="12dp"
+                    android:padding="8dp"
                     android:src="@drawable/ic_menu"
-                    app:tint="@color/white" />
+                    app:tint="@color/text_primary" />
             </LinearLayout>
 
             <!-- Hero Carousel -->
@@ -119,7 +119,7 @@
         android:layout_margin="24dp"
         android:src="@drawable/cinemawala"
         app:maxImageSize="52dp"
-        app:backgroundTint="#4D5FFF"
+        app:backgroundTint="#2750F5"
         app:tint="@null" />
 
     <!-- Remove Zone -->

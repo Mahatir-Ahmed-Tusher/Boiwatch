@@ -99,7 +99,7 @@ public class DiscoveryChatFragment extends BottomSheetDialogFragment {
         fullMessages.add(new ChatRequest.Message("system", systemPrompt));
         fullMessages.addAll(chatHistory);
 
-        ChatRequest request = new ChatRequest("qwen/qwen3-32b", fullMessages);
+        ChatRequest request = new ChatRequest("openai/gpt-oss-120b", fullMessages);
         
         ChatMessage aiMessage = new ChatMessage("...", ChatMessage.TYPE_AI);
         messages.add(aiMessage);

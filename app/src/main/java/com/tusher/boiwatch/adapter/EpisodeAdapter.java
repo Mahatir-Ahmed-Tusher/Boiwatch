@@ -20,7 +20,7 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
     private OnEpisodeClickListener listener;
 
     public interface OnEpisodeClickListener {
-        void onEpisodeClick(Episode episode);
+        void onEpisodeClick(List<Episode> episodes, int position);
     }
 
     public EpisodeAdapter(Context context, List<Episode> episodes, OnEpisodeClickListener listener) {
@@ -64,7 +64,10 @@ public class EpisodeAdapter extends RecyclerView.Adapter<EpisodeAdapter.ViewHold
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
-                listener.onEpisodeClick(episode);
+                int currentPos = holder.getAdapterPosition();
+                if (currentPos != RecyclerView.NO_POSITION) {
+                    listener.onEpisodeClick(episodes, currentPos);
+                }
             }
         });
     }

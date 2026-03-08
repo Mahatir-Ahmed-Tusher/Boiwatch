@@ -15,11 +15,11 @@ public class ChatRequest {
     public ChatRequest(String model, List<Message> messages) {
         this.model = model;
         this.messages = messages;
-        this.temperature = 0.6;
-        this.top_p = 0.95;
-        this.max_completion_tokens = 4096;
+        this.temperature = 1.0;
+        this.top_p = 1.0;
+        this.max_completion_tokens = 8192;
         this.stream = true;
-        this.reasoning_effort = "default";
+        this.reasoning_effort = "medium";
         this.stop = null;
     }
 

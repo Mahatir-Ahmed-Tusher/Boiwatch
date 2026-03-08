@@ -41,4 +41,15 @@
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/text_primary</item>
     </style>
+
+    <!-- Bottom Sheet Theme for Search Modal -->
+    <style name="CustomBottomSheetDialogTheme" parent="Theme.Material3.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="CustomBottomSheetStyle" parent="Widget.Material3.BottomSheet">
+        <item name="backgroundTint">@android:color/transparent</item>
+    </style>
 </resources>

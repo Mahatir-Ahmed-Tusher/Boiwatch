@@ -59,7 +59,7 @@ public class MovieDetailActivity extends AppCompatActivity {
     private SharedPreferences prefs;
     private Gson gson = new Gson();
     private RecyclerView rvCast, rvEpisodes, rvPhotos;
-    private View btnTrailer, btnPlay; // Changed from MaterialButton to View
+    private View btnTrailer, btnPlay; 
     private MaterialButton btnSeasonPicker;
     private TextView tvCrewList, tvYear;
     private RelativeLayout rlDirectorSection;
@@ -124,7 +124,7 @@ public class MovieDetailActivity extends AppCompatActivity {
             if (isTVShow) {
                 scrollView.smoothScrollTo(0, llEpisodesSection.getTop());
             } else {
-                showAdsWarning(null);
+                showAdsWarning(null, -1);
             }
         });
 
@@ -135,6 +135,7 @@ public class MovieDetailActivity extends AppCompatActivity {
         updateWatchlistIcon(btnWatchlist);
 
         btnWatchlist.setOnClickListener(v -> {
+            animateButtonClick(v);
             toggleWatchlist();
             updateWatchlistIcon(btnWatchlist);
         });
@@ -180,29 +181,38 @@ public class MovieDetailActivity extends AppCompatActivity {
         saveList(Constants.KEY_WATCHLIST, watchlist);
     }
 
+    private void animateButtonClick(View v) {
+        v.animate().scaleX(0.8f).scaleY(0.8f).setDuration(100).withEndAction(() -> 
+            v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
+        ).start();
+    }
+
     private void setupNavigation() {
         com.google.android.material.bottomnavigation.BottomNavigationView navView = findViewById(R.id.bottom_navigation);
-        navView.setSelectedItemId(-1); // Don't select any by default since we're in detail
-        
-        navView.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            
-            if (id == R.id.nav_home) {
-                intent.putExtra("navigate_to", "home");
-            } else if (id == R.id.nav_search) {
-                intent.putExtra("navigate_to", "search");
-            } else if (id == R.id.nav_reels) {
-                intent.putExtra("navigate_to", "reels");
-            } else if (id == R.id.nav_library) {
-                intent.putExtra("navigate_to", "library");
-            }
-            
-            startActivity(intent);
-            finish();
-            return true;
-        });
+        if (navView != null) {
+            navView.setSelectedItemId(-1); 
+            navView.setOnItemSelectedListener(item -> {
+                int id = item.getItemId();
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                
+                if (id == R.id.nav_home) {
+                    intent.putExtra("navigate_to", "home");
+                } else if (id == R.id.nav_search) {
+                    intent.putExtra("navigate_to", "search");
+                } else if (id == R.id.nav_reels) {
+                    intent.putExtra("navigate_to", "reels");
+                } else if (id == R.id.nav_library) {
+                    intent.putExtra("navigate_to", "library");
+                } else if (id == R.id.nav_audiobooks) {
+                    intent.putExtra("navigate_to", "audiobooks");
+                }
+                
+                startActivity(intent);
+                finish();
+                return true;
+            });
+        }
     }
 
     private void detectMediaType() {
@@ -300,8 +310,8 @@ public class MovieDetailActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(Call<EpisodeResponse> call, Response<EpisodeResponse> response) {
                         if (response.isSuccessful() && response.body() != null) {
-                            rvEpisodes.setAdapter(new EpisodeAdapter(MovieDetailActivity.this, response.body().getEpisodes(), episode -> {
-                                showAdsWarning(episode);
+                            rvEpisodes.setAdapter(new EpisodeAdapter(MovieDetailActivity.this, response.body().getEpisodes(), (episodes, position) -> {
+                                showAdsWarning(episodes, position);
                             }));
                         }
                     }
@@ -334,14 +344,16 @@ public class MovieDetailActivity extends AppCompatActivity {
         View view = getLayoutInflater().inflate(R.layout.dialog_season_picker, null);
         RecyclerView rvSeasons = view.findViewById(R.id.rv_season_list);
         
-        rvSeasons.setLayoutManager(new LinearLayoutManager(this));
-        SeasonAdapter adapter = new SeasonAdapter(this, seasons, currentSeasonNumber, season -> {
-            currentSeasonNumber = season.getSeasonNumber();
-            btnSeasonPicker.setText(season.getName());
-            fetchEpisodes(currentSeasonNumber);
-            dialog.dismiss();
-        });
-        rvSeasons.setAdapter(adapter);
+        if (rvSeasons != null) {
+            rvSeasons.setLayoutManager(new LinearLayoutManager(this));
+            SeasonAdapter adapter = new SeasonAdapter(this, seasons, currentSeasonNumber, season -> {
+                currentSeasonNumber = season.getSeasonNumber();
+                btnSeasonPicker.setText(season.getName());
+                fetchEpisodes(currentSeasonNumber);
+                dialog.dismiss();
+            });
+            rvSeasons.setAdapter(adapter);
+        }
         
         dialog.setContentView(view);
         dialog.show();
@@ -385,7 +397,6 @@ public class MovieDetailActivity extends AppCompatActivity {
         String token = "Bearer " + Constants.TMDB_ACCESS_TOKEN;
         int id = Integer.parseInt(movie.getId());
         
-        // Use TV videos endpoint for TV shows, movie videos for movies
         Call<VideosResponse> call;
         if ("tv".equals(movie.getMediaType())) {
             call = RetrofitClient.getApi().getTVVideos(token, id);
@@ -405,7 +416,6 @@ public class MovieDetailActivity extends AppCompatActivity {
                                     return;
                                 }
                             }
-                            // If no Trailer found, try Teaser
                             for (Video video : videos) {
                                 if ("Teaser".equals(video.getType()) && "YouTube".equals(video.getSite())) {
                                     setupTrailerButton(video.getKey());
@@ -414,8 +424,6 @@ public class MovieDetailActivity extends AppCompatActivity {
                             }
                         }
                     }
-                    
-                    // If this was a TV call that failed to find videos, try movie endpoint as fallback
                     if ("tv".equals(movie.getMediaType())) {
                         fetchMovieVideosFallback();
                     }
@@ -468,13 +476,6 @@ public class MovieDetailActivity extends AppCompatActivity {
         settings.setAllowContentAccess(true);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
-        
-        // Fix for Error 150/153: Set a proper mobile User-Agent
-        // Use a desktop-like but compatible UA to avoid the "mobile web" UI (red mark)
-        // and get the clean embedded player (green mark)
-        String cleanUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36";
-        settings.setUserAgentString(cleanUA);
-
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -483,9 +484,8 @@ public class MovieDetailActivity extends AppCompatActivity {
             }
         });
 
-        // Clean embed parameters: modestbranding=1, rel=0, showinfo=0
-        String iframeHtml = "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><style>body { margin: 0; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; } .video-container { position: relative; width: 100%; padding-bottom: 56.25%; height: 0; } .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }</style></head><body><div class=\"video-container\"><iframe id=\"yt_player\" src=\"https://www.youtube.com/embed/" + key + "?autoplay=1&rel=0&modestbranding=1&controls=1&showinfo=0&origin=https://www.youtube.com\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div><script>var tag = document.createElement('script'); tag.src = \"https://www.youtube.com/iframe_api\"; var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);</script></body></html>";
-        webView.loadDataWithBaseURL("https://www.youtube.com", iframeHtml, "text/html", "utf-8", null);
+        String embedUrl = "https://www.youtube.com/embed/" + key + "?autoplay=1&rel=0&showinfo=0&modestbranding=1";
+        webView.loadUrl(embedUrl);
 
         new MaterialAlertDialogBuilder(this, R.style.GlassmorphicDialog)
                 .setView(view)
@@ -496,17 +496,15 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     private void openYouTubeFallback(String key) {
         try {
-            // Try YouTube app first
             Intent ytIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + key));
             startActivity(ytIntent);
         } catch (Exception e) {
-            // Fallback to browser
             Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=" + key));
             startActivity(browserIntent);
         }
     }
 
-    private void showAdsWarning(Episode episode) {
+    private void showAdsWarning(List<Episode> episodes, int position) {
         String typeLabel = isTVShow ? "TV series" : "movies";
         String message = "Since we source these " + typeLabel + " from external providers, occasional viewing issues can happen. If that occurs, you can try switching servers by clicking the icon in the top-right corner of the screen.";
         new MaterialAlertDialogBuilder(this, R.style.GlassmorphicDialog)
@@ -515,9 +513,12 @@ public class MovieDetailActivity extends AppCompatActivity {
                 .setPositiveButton("I Understand", (dialog, which) -> {
                     Intent intent = new Intent(MovieDetailActivity.this, PlayerActivity.class);
                     intent.putExtra("movie", movie);
-                    if (episode != null) {
+                    if (episodes != null && position >= 0 && position < episodes.size()) {
+                        Episode episode = episodes.get(position);
                         intent.putExtra("season", episode.getSeasonNumber());
                         intent.putExtra("episode", episode.getEpisodeNumber());
+                        intent.putExtra("episode_list", new ArrayList<>(episodes));
+                        intent.putExtra("current_episode_index", position);
                     }
                     startActivity(intent);
                 })

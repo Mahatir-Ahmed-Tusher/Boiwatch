@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/glass_dialog_bg"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Handle / Drag Indicator -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="#44FFFFFF"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Logo -->
+    <ImageView
+        android:layout_width="160dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_horizontal"
+        android:src="@drawable/cimana_icon"
+        android:scaleType="fitCenter"
+        android:layout_marginBottom="32dp" />
+
+    <!-- Welcome Text -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Welcome Back"
+        android:textColor="@color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:fontFamily="@font/outfit"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Log in to access your personalized library."
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Email Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Email"
+        app:boxBackgroundColor="#11FFFFFF"
+        app:boxStrokeWidth="0dp"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        android:textColorHint="@color/text_secondary"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textEmailAddress"
+            android:textColor="@color/text_primary"
+            android:paddingTop="24dp"
+            android:paddingBottom="12dp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Password Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Password"
+        app:passwordToggleEnabled="true"
+        app:passwordToggleTint="@color/text_secondary"
+        app:boxBackgroundColor="#11FFFFFF"
+        app:boxStrokeWidth="0dp"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        android:textColorHint="@color/text_secondary"
+        android:layout_marginBottom="32dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPassword"
+            android:textColor="@color/text_primary"
+            android:paddingTop="24dp"
+            android:paddingBottom="12dp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Login Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_login_submit"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Log in (Demo)"
+        android:textSize="16sp"
+        app:backgroundTint="@color/accent"
+        app:cornerRadius="12dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Cancel Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_login_cancel"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cancel"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="16dp" />
+
+</LinearLayout>

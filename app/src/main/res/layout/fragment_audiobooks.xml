@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <!-- AppBarLayout to make Hero auto-hide on scroll if desired in the future,
+         but for now using a standard NestedScrollView layout structure -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="80dp">
+
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Audiobooks"
+                    android:textColor="@color/white"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_audiobook"
+                    app:tint="@color/accent" />
+            </LinearLayout>
+
+            <!-- Search Bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/glass_background"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_search"
+                    app:tint="@color/text_secondary" />
+
+                <EditText
+                    android:id="@+id/et_audiobook_search"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:background="@null"
+                    android:hint="Search audiobooks..."
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:textColor="@color/white"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <!-- Hero Carousel -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp">
+
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/vp_hero_carousel"
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp"
+                    android:clipChildren="false"
+                    android:clipToPadding="false" />
+
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tab_hero_indicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="12dp"
+                    android:layout_gravity="bottom|center_horizontal"
+                    android:layout_marginBottom="12dp"
+                    android:background="@android:color/transparent"
+                    app:tabBackground="@drawable/tab_selector"
+                    app:tabGravity="center"
+                    app:tabIndicatorHeight="0dp"
+                    app:tabMaxWidth="12dp"
+                    app:tabMinWidth="12dp"
+                    app:tabPaddingEnd="4dp"
+                    app:tabPaddingStart="4dp" />
+            </FrameLayout>
+
+            <!-- Recently Played Section -->
+            <LinearLayout
+                android:id="@+id/ll_recently_played"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:paddingHorizontal="16dp">
+
+                    <View
+                        android:id="@+id/indicator_recent"
+                        android:layout_width="4dp"
+                        android:layout_height="24dp"
+                        android:layout_centerVertical="true"
+                        android:background="@color/accent" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toEndOf="@id/indicator_recent"
+                        android:layout_marginStart="12dp"
+                        android:text="Recently Played"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </RelativeLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_recently_played"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:clipToPadding="false"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+            </LinearLayout>
+
+            <!-- Dynamic Genre Container -->
+            <!-- This container will hold dynamically inflated layout_audiobook_genre_section views -->
+            <LinearLayout
+                android:id="@+id/ll_genre_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="16dp" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

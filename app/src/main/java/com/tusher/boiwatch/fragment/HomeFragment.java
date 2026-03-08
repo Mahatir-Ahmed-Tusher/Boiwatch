@@ -35,7 +35,10 @@ import com.tusher.boiwatch.R;
 import com.tusher.boiwatch.activity.AboutActivity;
 import com.tusher.boiwatch.adapter.HeroAdapter;
 import com.tusher.boiwatch.adapter.MovieAdapter;
+import com.tusher.boiwatch.adapter.HomeAudiobookAdapter;
 import com.tusher.boiwatch.api.RetrofitClient;
+import com.tusher.boiwatch.api.YouTubeAudiobookService;
+import com.tusher.boiwatch.activity.AudiobookPlayerActivity;
 import com.tusher.boiwatch.models.Movie;
 import com.tusher.boiwatch.models.MovieResponse;
 import java.util.ArrayList;
@@ -177,10 +180,25 @@ public class HomeFragment extends Fragment {
                 } else if (item.getItemId() == R.id.menu_about) {
                     startActivity(new Intent(getContext(), AboutActivity.class));
                     return true;
-                } else if (item.getItemId() == R.id.menu_genres) {
+                } else if (item.getItemId() == R.id.menu_explore_genres) {
                     if (getActivity() instanceof MainActivity) {
                         ((MainActivity) getActivity()).openDrawer();
                     }
+                    return true;
+                } else if (item.getItemId() == R.id.menu_audiobooks) {
+                    if (getActivity() != null) {
+                        com.google.android.material.bottomnavigation.BottomNavigationView navView = getActivity().findViewById(R.id.bottom_navigation);
+                        if (navView != null) navView.setSelectedItemId(R.id.nav_audiobooks);
+                    }
+                    return true;
+                } else if (item.getItemId() == R.id.menu_reels) {
+                    if (getActivity() != null) {
+                        com.google.android.material.bottomnavigation.BottomNavigationView navView = getActivity().findViewById(R.id.bottom_navigation);
+                        if (navView != null) navView.setSelectedItemId(R.id.nav_reels);
+                    }
+                    return true;
+                } else if (item.getItemId() == R.id.menu_login) {
+                    new LoginBottomSheetFragment().show(getParentFragmentManager(), "LoginSheet");
                     return true;
                 }
                 return false;
@@ -200,6 +218,11 @@ public class HomeFragment extends Fragment {
             btnCheckUpdate.setOnClickListener(v -> 
                 com.tusher.boiwatch.utils.UpdateHelper.checkForUpdates(getContext(), true)
             );
+        }
+        
+        MaterialButton btnReorderSections = dialogView.findViewById(R.id.btn_reorder_sections);
+        if (btnReorderSections != null) {
+            btnReorderSections.setOnClickListener(v -> showSectionToggleDialog());
         }
         
         boolean isVisible = prefs.getBoolean(Constants.KEY_DISCOVERY_VISIBLE, true);
@@ -296,23 +319,94 @@ public class HomeFragment extends Fragment {
     }
 
     private void fetchDynamicSections() {
-        addCategorySection("Popular Movies", RetrofitClient.getApi().getPopularMovies(token), "movie");
-        addCategorySection("Top Rated Movies", RetrofitClient.getApi().getTopRatedMovies(token), "movie");
-        addCategorySection("Popular TV Shows", RetrofitClient.getApi().getPopularTV(token), "tv");
-        addCategorySection("Top Rated Shows", RetrofitClient.getApi().getTopRatedTV(token), "tv");
-        addCategorySection("Critically Acclaimed Shows", discoverTV(null, "vote_average.desc"), "tv");
-        addCategorySection("Sitcom Picks for You", discoverTV("35", null), "tv"); 
-        addCategorySection("Bingeworthy Shows", discoverTV(null, "popularity.desc"), "tv");
-        addCategorySection("Horror Classics", discoverMovie("27", null), "movie"); 
-        addCategorySection("Thriller Movies", discoverMovie("53", null), "movie");
-        addCategorySection("Action Packed", discoverMovie("28", null), "movie");
-        addCategorySection("Romance & Comedy", discoverMovie("10749,35", null), "movie"); 
-        addCategorySection("Anime", discoverTV("16", "ja"), "tv"); 
-        addCategorySection("K-Dramas", discoverTV("18", "ko"), "tv"); 
-        addCategorySection("J-Dramas", discoverTV("18", "ja"), "tv"); 
-        addCategorySection("Sci-Fi & Fantasy", discoverMovie("878,14", null), "movie");
-        addCategorySection("Documentaries", discoverMovie("99", null), "movie");
-        addCategorySection("Reality TV", discoverTV("10764", null), "tv");
+        String json = prefs.getString(Constants.KEY_HOME_SECTIONS, null);
+        List<String> activeSections;
+        if (json != null) {
+            activeSections = gson.fromJson(json, new TypeToken<List<String>>(){}.getType());
+            boolean modified = false;
+            
+            if (!activeSections.contains("animation")) {
+                int actionIndex = activeSections.indexOf("action");
+                if (actionIndex != -1) {
+                    activeSections.add(actionIndex + 1, "animation");
+                } else {
+                    activeSections.add("animation");
+                }
+                modified = true;
+            }
+            if (!activeSections.contains("audio_books")) {
+                int sitcomIndex = activeSections.indexOf("sitcom");
+                if (sitcomIndex != -1) {
+                    activeSections.add(sitcomIndex, "audio_books");
+                } else {
+                    activeSections.add("audio_books");
+                }
+                modified = true;
+            }
+            if (activeSections.remove("documentary")) modified = true;
+            if (activeSections.remove("reality")) modified = true;
+            
+            if (modified) {
+                prefs.edit().putString(Constants.KEY_HOME_SECTIONS, gson.toJson(activeSections)).apply();
+            }
+        } else {
+            activeSections = getDefaultSections();
+        }
+
+        for (String section : activeSections) {
+            switch (section) {
+                case "popular_movies": addCategorySection("Popular Movies", RetrofitClient.getApi().getPopularMovies(token), "movie"); break;
+                case "top_rated_movies": addCategorySection("Top Rated Movies", RetrofitClient.getApi().getTopRatedMovies(token), "movie"); break;
+                case "popular_tv": addCategorySection("Popular TV Shows", RetrofitClient.getApi().getPopularTV(token), "tv"); break;
+                case "top_rated_tv": addCategorySection("Top Rated Shows", RetrofitClient.getApi().getTopRatedTV(token), "tv"); break;
+                case "critically_acclaimed": addCategorySection("Critically Acclaimed Shows", discoverTV(null, "vote_average.desc"), "tv"); break;
+                case "audio_books": addAudiobookSection("Audio Books"); break;
+                case "sitcom": addCategorySection("Sitcom Picks for You", discoverTV("35", null), "tv"); break;
+                case "binge": addCategorySection("Bingeworthy Shows", discoverTV(null, "popularity.desc"), "tv"); break;
+                case "horror": addCategorySection("Horror Classics", discoverMovie("27", null), "movie"); break;
+                case "thriller": addCategorySection("Thriller Movies", discoverMovie("53", null), "movie"); break;
+                case "action": addCategorySection("Action Packed", discoverMovie("28", null), "movie"); break;
+                case "animation": addCategorySection("Animations", discoverMovie("16", null), "movie"); break;
+                case "romance": addCategorySection("Romance & Comedy", discoverMovie("10749,35", null), "movie"); break;
+                case "anime": addCategorySection("Anime", discoverTV("16", "ja"), "tv"); break;
+                case "k_drama": addCategorySection("K-Dramas", discoverTV("18", "ko"), "tv"); break;
+                case "j_drama": addCategorySection("J-Dramas", discoverTV("18", "ja"), "tv"); break;
+                case "sci_fi": addCategorySection("Sci-Fi & Fantasy", discoverMovie("878,14", null), "movie"); break;
+            }
+        }
+    }
+
+    private List<String> getDefaultSections() {
+        return List.of("popular_movies", "top_rated_movies", "popular_tv", "top_rated_tv", "critically_acclaimed", "audio_books", "sitcom", "binge", "horror", "thriller", "action", "animation", "romance", "anime", "k_drama", "j_drama", "sci_fi");
+    }
+
+    private void showSectionToggleDialog() {
+        String[] sectionKeys = {"popular_movies", "top_rated_movies", "popular_tv", "top_rated_tv", "critically_acclaimed", "audio_books", "sitcom", "binge", "horror", "thriller", "action", "animation", "romance", "anime", "k_drama", "j_drama", "sci_fi"};
+        String[] sectionNames = {"Popular Movies", "Top Rated Movies", "Popular TV", "Top Rated TV", "Critically Acclaimed", "Audio Books", "Sitcoms", "Bingeworthy", "Horror", "Thriller", "Action", "Animations", "Romance", "Anime", "K-Dramas", "J-Dramas", "Sci-Fi"};
+        
+        String json = prefs.getString(Constants.KEY_HOME_SECTIONS, null);
+        List<String> activeKeys = (json != null) ? gson.fromJson(json, new TypeToken<List<String>>(){}.getType()) : getDefaultSections();
+        
+        boolean[] checkedItems = new boolean[sectionKeys.length];
+        for (int i = 0; i < sectionKeys.length; i++) {
+            checkedItems[i] = activeKeys.contains(sectionKeys[i]);
+        }
+
+        new MaterialAlertDialogBuilder(getContext(), R.style.GlassmorphicDialog)
+                .setTitle("Customize Home")
+                .setMultiChoiceItems(sectionNames, checkedItems, (dialog, which, isChecked) -> {
+                    checkedItems[which] = isChecked;
+                })
+                .setPositiveButton("Save", (dialog, which) -> {
+                    List<String> newActiveKeys = new ArrayList<>();
+                    for (int i = 0; i < sectionKeys.length; i++) {
+                        if (checkedItems[i]) newActiveKeys.add(sectionKeys[i]);
+                    }
+                    prefs.edit().putString(Constants.KEY_HOME_SECTIONS, gson.toJson(newActiveKeys)).apply();
+                    updateGenre(-1, null); // Refresh home
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private Call<MovieResponse> discoverMovie(String genres, String sortBy) {
@@ -356,6 +450,47 @@ public class HomeFragment extends Fragment {
             @Override
             public void onFailure(Call<MovieResponse> call, Throwable t) {
                 llDynamicSections.removeView(sectionView);
+            }
+        });
+    }
+
+    private void addAudiobookSection(String title) {
+        View sectionView = LayoutInflater.from(getContext()).inflate(R.layout.item_home_section, llDynamicSections, false);
+        TextView tvTitle = sectionView.findViewById(R.id.tv_section_title);
+        RecyclerView rvList = sectionView.findViewById(R.id.rv_section_list);
+        
+        tvTitle.setText(title);
+        tvTitle.setOnClickListener(v -> {
+            if (getActivity() != null) {
+                androidx.navigation.Navigation.findNavController(getActivity(), R.id.fragment_container).navigate(R.id.nav_audiobooks);
+            }
+        });
+        
+        rvList.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        
+        llDynamicSections.addView(sectionView);
+        
+        String query = "Best Sci-Fi Mystery full audiobook english " + (Math.random() > 0.95 ? "bangla" : "");
+        YouTubeAudiobookService.getInstance().searchAudiobooks(query, new YouTubeAudiobookService.SearchCallback() {
+            @Override
+            public void onSuccess(List<com.tusher.boiwatch.models.Audiobook> results) {
+                if (isAdded() && results != null && !results.isEmpty()) {
+                    HomeAudiobookAdapter adapter = new HomeAudiobookAdapter(getContext(), results, audiobook -> {
+                        Intent intent = new Intent(getContext(), AudiobookPlayerActivity.class);
+                        intent.putExtra("audiobook", audiobook);
+                        startActivity(intent);
+                    });
+                    rvList.setAdapter(adapter);
+                } else {
+                    llDynamicSections.removeView(sectionView);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                if (isAdded()) {
+                    llDynamicSections.removeView(sectionView);
+                }
             }
         });
     }

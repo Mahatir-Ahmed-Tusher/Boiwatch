@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:orientation="vertical">
+
+    <!-- Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_audiobook"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        app:navigationIcon="@drawable/ic_back"
+        app:title=""
+        app:titleTextColor="@color/white" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingBottom="120dp">
+
+            <!-- Cover Art -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cv_player_cover"
+                android:layout_width="260dp"
+                android:layout_height="260dp"
+                android:layout_marginTop="16dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="12dp">
+
+                <ImageView
+                    android:id="@+id/iv_player_cover"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Title & Author -->
+            <TextView
+                android:id="@+id/tv_player_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:gravity="center"
+                android:maxLines="3"
+                android:textColor="@color/white"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_player_author"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:maxLines="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <!-- Seek Bar -->
+            <SeekBar
+                android:id="@+id/seekbar_player"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:progressTint="@color/accent"
+                android:thumbTint="@color/accent" />
+
+            <!-- Time labels -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_current_time"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="0:00"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tv_total_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0:00"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Playback Controls -->
+            <LinearLayout
+                android:id="@+id/ll_player_controls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/btn_rewind"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_replay_10"
+                    app:tint="@color/white" />
+
+                <ImageView
+                    android:id="@+id/btn_play_pause"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_marginHorizontal="32dp"
+                    android:background="@drawable/glow_button"
+                    android:padding="16dp"
+                    android:src="@drawable/ic_play"
+                    app:tint="@color/white" />
+
+                <ImageView
+                    android:id="@+id/btn_forward"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_forward_10"
+                    app:tint="@color/white" />
+            </LinearLayout>
+
+            <!-- Loading indicator -->
+            <ProgressBar
+                android:id="@+id/progress_loading"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="16dp"
+                android:indeterminateTint="@color/accent"
+                android:visibility="visible" />
+
+            <TextView
+                android:id="@+id/tv_loading_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Fetching audio stream..."
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <!-- Chapters Section -->
+            <RelativeLayout
+                android:id="@+id/rl_chapters_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:visibility="gone">
+
+                <View
+                    android:id="@+id/indicator_chapters"
+                    android:layout_width="4dp"
+                    android:layout_height="24dp"
+                    android:layout_centerVertical="true"
+                    android:background="@color/accent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toEndOf="@id/indicator_chapters"
+                    android:layout_marginStart="12dp"
+                    android:text="Chapters"
+                    android:textColor="@color/white"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </RelativeLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_chapters"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

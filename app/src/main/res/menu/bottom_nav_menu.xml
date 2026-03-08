@@ -2,18 +2,22 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_home"
-        android:icon="@drawable/ic_home"
+        android:icon="@drawable/home_icon"
         android:title="Home" />
     <item
         android:id="@+id/nav_search"
-        android:icon="@drawable/ic_search"
+        android:icon="@drawable/ic_search_small"
         android:title="Search" />
+    <item
+        android:id="@+id/nav_audiobooks"
+        android:icon="@drawable/audiobook_icon"
+        android:title="Audiobooks" />
+    <item
+        android:id="@+id/nav_library"
+        android:icon="@drawable/ic_library_small"
+        android:title="Library" />
     <item
         android:id="@+id/nav_reels"
         android:icon="@drawable/reels_icon"
         android:title="Reels" />
-    <item
-        android:id="@+id/nav_library"
-        android:icon="@drawable/ic_library"
-        android:title="Library" />
 </menu>

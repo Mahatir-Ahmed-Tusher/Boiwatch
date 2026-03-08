@@ -1,11 +1,16 @@
 package com.tusher.boiwatch.activity;
 
 import android.annotation.SuppressLint;
+import android.app.PictureInPictureParams;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
+import android.util.Rational;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -59,6 +64,12 @@ public class PlayerActivity extends AppCompatActivity {
     private int currentSourceIndex = 0;
     private boolean isErrorOccurred = false;
 
+    private List<com.tusher.boiwatch.models.Episode> episodeList;
+    private int currentEpisodeIndex = -1;
+    private View btnPrevEpisode;
+    private View btnNextEpisode;
+    private View llTvControls;
+
     private Handler timeoutHandler = new Handler(Looper.getMainLooper());
     private Runnable timeoutRunnable = this::tryNextSource;
 
@@ -98,11 +109,21 @@ public class PlayerActivity extends AppCompatActivity {
         season = getIntent().getIntExtra("season", -1);
         episode = getIntent().getIntExtra("episode", -1);
 
+        if (getIntent().hasExtra("episode_list")) {
+            episodeList = (List<com.tusher.boiwatch.models.Episode>) getIntent().getSerializableExtra("episode_list");
+            currentEpisodeIndex = getIntent().getIntExtra("current_episode_index", -1);
+        }
+
         prefs = getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE);
         
         initViews();
         loadSources();
         startHideControlsTimer();
+        
+        // Auto-pause background audiobook if playing
+        android.content.Intent pauseIntent = new android.content.Intent("ACTION_AUDIOBOOK_CONTROL");
+        pauseIntent.putExtra("cmd", "pause");
+        androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(this).sendBroadcast(pauseIntent);
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -129,6 +150,19 @@ public class PlayerActivity extends AppCompatActivity {
             }
         });
 
+        llTvControls = findViewById(R.id.ll_tv_controls);
+        btnPrevEpisode = findViewById(R.id.btn_prev_episode);
+        btnNextEpisode = findViewById(R.id.btn_next_episode);
+
+        if (season != -1 && episodeList != null) {
+            llTvControls.setVisibility(View.VISIBLE);
+            updateButtonStates();
+            btnPrevEpisode.setOnClickListener(v -> playPrevEpisode());
+            btnNextEpisode.setOnClickListener(v -> playNextEpisode());
+        } else {
+            if (llTvControls != null) llTvControls.setVisibility(View.GONE);
+        }
+
         setupGestureControls();
         initGestureViews();
         setupWebView();
@@ -137,6 +171,48 @@ public class PlayerActivity extends AppCompatActivity {
         playerControls.setOnClickListener(v -> toggleControls());
         
         setFullscreen();
+    }
+
+    private void updateTitle() {
+        TextView tvTitle = findViewById(R.id.tv_player_movie_title);
+        String title = movie.getTitle();
+        if (season != -1 && episode != -1) {
+            title += " - S" + season + " E" + episode;
+        }
+        tvTitle.setText(title);
+    }
+
+    private void updateButtonStates() {
+        if (episodeList == null || btnPrevEpisode == null || btnNextEpisode == null) return;
+        btnPrevEpisode.setAlpha(currentEpisodeIndex > 0 ? 1.0f : 0.4f);
+        btnPrevEpisode.setEnabled(currentEpisodeIndex > 0);
+        
+        btnNextEpisode.setAlpha(currentEpisodeIndex < episodeList.size() - 1 ? 1.0f : 0.4f);
+        btnNextEpisode.setEnabled(currentEpisodeIndex < episodeList.size() - 1);
+    }
+
+    private void playNextEpisode() {
+        if (episodeList != null && currentEpisodeIndex < episodeList.size() - 1) {
+            currentEpisodeIndex++;
+            switchEpisode(episodeList.get(currentEpisodeIndex));
+        }
+    }
+
+    private void playPrevEpisode() {
+        if (episodeList != null && currentEpisodeIndex > 0) {
+            currentEpisodeIndex--;
+            switchEpisode(episodeList.get(currentEpisodeIndex));
+        }
+    }
+
+    private void switchEpisode(com.tusher.boiwatch.models.Episode newEpisode) {
+        season = newEpisode.getSeasonNumber();
+        episode = newEpisode.getEpisodeNumber();
+        updateTitle();
+        updateButtonStates();
+        resetHideControlsTimer();
+        Toast.makeText(this, "Playing S" + season + " E" + episode, Toast.LENGTH_SHORT).show();
+        loadSources();
     }
 
     private void toggleControls() {
@@ -334,6 +410,18 @@ public class PlayerActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    public class WebAppInterface {
+        @android.webkit.JavascriptInterface
+        public void onVideoEnded() {
+            runOnUiThread(() -> {
+                if (episodeList != null && currentEpisodeIndex < episodeList.size() - 1) {
+                    Toast.makeText(PlayerActivity.this, "Auto-playing next episode...", Toast.LENGTH_SHORT).show();
+                    playNextEpisode();
+                }
+            });
+        }
+    }
+
     @SuppressLint({"SetJavaScriptEnabled", "ClickableViewAccessibility"})
     private void setupWebView() {
         WebSettings settings = webView.getSettings();
@@ -344,6 +432,8 @@ public class PlayerActivity extends AppCompatActivity {
         settings.setSupportMultipleWindows(false);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
+
+        webView.addJavascriptInterface(new WebAppInterface(), "Android");
 
         // This is key: catch touch events on WebView to show controls and handle gestures
         webView.setOnTouchListener((v, event) -> {
@@ -370,6 +460,7 @@ public class PlayerActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 timeoutHandler.removeCallbacks(timeoutRunnable); // Stop the timeout timer
                 injectAntiRedirectJS(view);
+                injectAutoPlayJS(view);
             }
 
             @Override
@@ -502,12 +593,23 @@ public class PlayerActivity extends AppCompatActivity {
         view.evaluateJavascript(js, null);
     }
 
+    private void injectAutoPlayJS(WebView view) {
+        String js = "javascript:(function() {" +
+                "  var videos = document.getElementsByTagName('video');" +
+                "  if (videos.length > 0) {" +
+                "    var v = videos[0];" +
+                "    v.removeEventListener('ended', window.boiwatchVideoEndedListener);" +
+                "    window.boiwatchVideoEndedListener = function() { Android.onVideoEnded(); };" +
+                "    v.addEventListener('ended', window.boiwatchVideoEndedListener);" +
+                "  }" +
+                "})()";
+        view.evaluateJavascript(js, null);
+    }
+
     @Override
     public void onBackPressed() {
         if (mCustomView != null) {
             webView.getWebChromeClient().onHideCustomView();
-        } else if (webView.canGoBack()) {
-            webView.goBack();
         } else {
             super.onBackPressed();
         }
@@ -520,6 +622,34 @@ public class PlayerActivity extends AppCompatActivity {
         webView.pauseTimers();
         timeoutHandler.removeCallbacks(timeoutRunnable);
         hideControlsHandler.removeCallbacks(hideControlsRunnable);
+    }
+
+    @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Rational aspectRatio = new Rational(16, 9);
+            PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder();
+            pipBuilder.setAspectRatio(aspectRatio);
+            enterPictureInPictureMode(pipBuilder.build());
+        }
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
+        if (isInPictureInPictureMode) {
+            // Hide all controls in PiP mode
+            if (playerControls != null) playerControls.setVisibility(View.GONE);
+            Toolbar toolbar = findViewById(R.id.player_toolbar);
+            if (toolbar != null) toolbar.setVisibility(View.GONE);
+        } else {
+            // Show controls back when exiting PiP mode
+            if (playerControls != null) playerControls.setVisibility(View.VISIBLE);
+            Toolbar toolbar = findViewById(R.id.player_toolbar);
+            if (toolbar != null) toolbar.setVisibility(View.VISIBLE);
+            setFullscreen();
+        }
     }
 
     @Override
